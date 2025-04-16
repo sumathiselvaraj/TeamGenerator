@@ -94,7 +94,7 @@ public class Team {
         int count = 0;
         for (Student student : members) {
             String courseType = student.getCourseType();
-            if (courseType != null && courseType.toLowerCase().contains("advanced")) {
+            if (courseType != null && courseType.equalsIgnoreCase("Advanced")) {
                 count++;
                 // For debugging
                 System.out.println("Advanced student in team " + name + ": " + student.getName() + " - " + courseType);
@@ -107,9 +107,7 @@ public class Team {
         int count = 0;
         for (Student student : members) {
             String courseType = student.getCourseType();
-            if (courseType != null && 
-                    (courseType.toLowerCase().contains("full") || 
-                     courseType.equalsIgnoreCase("Full Course"))) {
+            if (courseType != null && courseType.equalsIgnoreCase("Full Course")) {
                 count++;
                 // For debugging
                 System.out.println("Full Course student in team " + name + ": " + student.getName() + " - " + courseType);

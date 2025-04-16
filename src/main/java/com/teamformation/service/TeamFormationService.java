@@ -241,18 +241,23 @@ public class TeamFormationService {
             // For debugging: print all course types
             System.out.println("Student: " + student.getName() + ", Course Type: " + student.getCourseType());
             
+            // Clean up any leading/trailing whitespace
+            if (student.getCourseType() != null) {
+                student.setCourseType(student.getCourseType().trim());
+            }
+            
+            // Get course type
             String courseType = student.getCourseType() != null ? student.getCourseType().toLowerCase() : "";
-            if (courseType.contains("advanced")) {
+            
+            // STRICTLY check for Advanced vs Full Course
+            if (courseType.equals("advanced")) {
                 advancedCourseStudents.add(student);
                 // Ensure courseType is explicitly set to "Advanced"
                 student.setCourseType("Advanced");
-            } else if (courseType.contains("full")) {
+            } else {
+                // All other course types are considered Full Course
                 fullCourseStudents.add(student);
                 // Ensure courseType is explicitly set to "Full Course"
-                student.setCourseType("Full Course");
-            } else {
-                // Default to full course if not specified
-                fullCourseStudents.add(student);
                 student.setCourseType("Full Course");
             }
         }

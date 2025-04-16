@@ -157,18 +157,18 @@ public class ExcelService {
                         Cell courseTypeCell = row.getCell(courseTypeIdx);
                         if (courseTypeCell != null) {
                             String courseType = getCellValueAsString(courseTypeCell).trim();
-                            // Standardize course type names for consistency
-                            if (courseType.toLowerCase().contains("advanced")) {
+                            // Strictly standardize course type names - we only want the specific value "Advanced"
+                            if (courseType.equalsIgnoreCase("advanced")) {
                                 student.setCourseType("Advanced");
                                 System.out.println("Excel processing - Advanced student: " + student.getName());
-                            } else if (courseType.toLowerCase().contains("full")) {
-                                student.setCourseType("Full Course");
-                                System.out.println("Excel processing - Full Course student: " + student.getName());
                             } else {
-                                // Default if not recognized
-                                student.setCourseType(courseType);
-                                System.out.println("Excel processing - Unknown course type: " + student.getName() + " - " + courseType);
+                                // All others are "Full Course"
+                                student.setCourseType("Full Course");
+                                System.out.println("Excel processing - Full Course student: " + student.getName() + " - " + courseType);
                             }
+                            
+                            // Print every student's course type for debugging
+                            System.out.println("COURSE TYPE CHECK: " + student.getName() + " => " + student.getCourseType());
                         } else {
                             continue; // Skip rows without course type
                         }
