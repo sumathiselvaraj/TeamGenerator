@@ -252,15 +252,34 @@ public class TeamFormationService {
             }
         }
         
-        // For other events, consider batch diversity
+        // For other events, consider team size limits and batch diversity
         String studentBatch = student.getBatch();
         String studentTrack = student.getTrack();
         
-        // First, prioritize team size balancing - find teams with fewer members
+        // For non-SQL events, enforce the max team size of HACKATHON_TEAM_SIZE (5)
+        // First, find teams that haven't reached the max size
+        List<Integer> eligibleTeams = new ArrayList<>();
+        for (int i = 0; i < numTeams; i++) {
+            // Only include teams that haven't reached the maximum size
+            if (teams.get(i).getSize() < HACKATHON_TEAM_SIZE) {
+                eligibleTeams.add(i);
+            }
+        }
+        
+        // If all teams are full, create a new team
+        if (eligibleTeams.isEmpty()) {
+            Team newTeam = Team.builder()
+                    .name("Team " + (numTeams + 1))
+                    .build();
+            teams.add(newTeam);
+            return numTeams; // Index of the new team
+        }
+        
+        // Find the smallest eligible teams
         List<Integer> smallestTeams = new ArrayList<>();
         int minSize = Integer.MAX_VALUE;
         
-        for (int i = 0; i < numTeams; i++) {
+        for (int i : eligibleTeams) {
             int teamSize = teams.get(i).getSize();
             if (teamSize < minSize) {
                 smallestTeams.clear();
