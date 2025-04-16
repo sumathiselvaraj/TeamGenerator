@@ -644,16 +644,34 @@ public class TeamFormationService {
             System.out.println("Time zone " + entry.getKey() + ": " + entry.getValue().size() + " students");
         }
         
-        // Group compatible time zones
+        // Group compatible time zones while ensuring balanced team sizes
         // EST with CST, CST with PST
         List<String> timeZones = new ArrayList<>(timeZoneGroups.keySet());
-        for (String timeZone : timeZones) {
-            List<Student> studentsInTimeZone = timeZoneGroups.get(timeZone);
-            
-            for (Student student : studentsInTimeZone) {
-                // Find the best team based on batch diversity and team size
-                int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
-                teams.get(targetTeam).addMember(student);
+        
+        // Before distributing remaining students, check if teams are already balanced
+        boolean hasUnbalancedTeams = false;
+        int maxTeamSize = (int) Math.ceil((double) numStudents / numTeams);
+        int minTeamSize = (int) Math.floor((double) numStudents / numTeams);
+        
+        for (Team team : teams) {
+            if (team.getSize() < minTeamSize || team.getSize() > maxTeamSize) {
+                hasUnbalancedTeams = true;
+                break;
+            }
+        }
+        
+        // If teams are already balanced, we don't need to distribute more students
+        if (hasUnbalancedTeams) {
+            // Distribute students by timezone while enforcing balanced team sizes
+            for (String timeZone : timeZones) {
+                List<Student> studentsInTimeZone = timeZoneGroups.get(timeZone);
+                
+                for (Student student : studentsInTimeZone) {
+                    // Find the best team based on current team size and batch diversity
+                    // This should ensure teams remain reasonably balanced
+                    int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
+                    teams.get(targetTeam).addMember(student);
+                }
             }
         }
         
@@ -789,44 +807,59 @@ public class TeamFormationService {
         }
         
         // Special handling for track distribution in Phase 1 API Hackathon
-        // We need to split DA and DVLPR tracks equally across teams
+        // We need to split DA and DVLPR tracks equally across teams while ensuring balanced team sizes
         
-        // First, process students based on time zone compatibility
-        List<String> timeZones = new ArrayList<>(timeZoneGroups.keySet());
-        for (String timeZone : timeZones) {
-            List<Student> studentsInTimeZone = timeZoneGroups.get(timeZone);
-            
-            // Process DA track students first
-            List<Student> daStudents = studentsInTimeZone.stream()
-                    .filter(s -> "DA".equalsIgnoreCase(s.getTrack()))
-                    .collect(Collectors.toList());
-            
-            for (Student student : daStudents) {
-                // Find the best team based on batch diversity and working status
-                int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
-                teams.get(targetTeam).addMember(student);
+        // Before distributing remaining students, check if teams are already balanced
+        boolean hasUnbalancedTeams = false;
+        int maxTeamSize = (int) Math.ceil((double) numStudents / numTeams);
+        int minTeamSize = (int) Math.floor((double) numStudents / numTeams);
+        
+        for (Team team : teams) {
+            if (team.getSize() < minTeamSize || team.getSize() > maxTeamSize) {
+                hasUnbalancedTeams = true;
+                break;
             }
-            
-            // Then process DVLPR track students
-            List<Student> dvlprStudents = studentsInTimeZone.stream()
-                    .filter(s -> "DVLPR".equalsIgnoreCase(s.getTrack()))
-                    .collect(Collectors.toList());
-            
-            for (Student student : dvlprStudents) {
-                // Find the best team based on batch diversity and working status
-                int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
-                teams.get(targetTeam).addMember(student);
-            }
-            
-            // Finally, process other tracks
-            List<Student> otherStudents = studentsInTimeZone.stream()
-                    .filter(s -> !"DA".equalsIgnoreCase(s.getTrack()) && !"DVLPR".equalsIgnoreCase(s.getTrack()))
-                    .collect(Collectors.toList());
-            
-            for (Student student : otherStudents) {
-                // Find the best team based on batch diversity and working status
-                int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
-                teams.get(targetTeam).addMember(student);
+        }
+        
+        // If teams are already balanced, we don't need to distribute more students
+        if (hasUnbalancedTeams) {
+            // First, process students based on time zone compatibility and tracks
+            List<String> timeZones = new ArrayList<>(timeZoneGroups.keySet());
+            for (String timeZone : timeZones) {
+                List<Student> studentsInTimeZone = timeZoneGroups.get(timeZone);
+                
+                // Process DA track students first
+                List<Student> daStudents = studentsInTimeZone.stream()
+                        .filter(s -> "DA".equalsIgnoreCase(s.getTrack()))
+                        .collect(Collectors.toList());
+                
+                for (Student student : daStudents) {
+                    // Find the best team based on batch diversity and working status
+                    int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
+                    teams.get(targetTeam).addMember(student);
+                }
+                
+                // Then process DVLPR track students
+                List<Student> dvlprStudents = studentsInTimeZone.stream()
+                        .filter(s -> "DVLPR".equalsIgnoreCase(s.getTrack()))
+                        .collect(Collectors.toList());
+                
+                for (Student student : dvlprStudents) {
+                    // Find the best team based on batch diversity and working status
+                    int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
+                    teams.get(targetTeam).addMember(student);
+                }
+                
+                // Finally, process other tracks
+                List<Student> otherStudents = studentsInTimeZone.stream()
+                        .filter(s -> !"DA".equalsIgnoreCase(s.getTrack()) && !"DVLPR".equalsIgnoreCase(s.getTrack()))
+                        .collect(Collectors.toList());
+                
+                for (Student student : otherStudents) {
+                    // Find the best team based on batch diversity and working status
+                    int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
+                    teams.get(targetTeam).addMember(student);
+                }
             }
         }
         
