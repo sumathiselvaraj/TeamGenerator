@@ -102,7 +102,7 @@
                                     </div>
                                     <div>
                                         <h5 class="card-title">Advanced Course Teams</h5>
-                                        <p class="card-text mb-1">Total Students: <span th:text="${result.advancedCourseStudentsCount}">0</span></p>
+                                        <p class="card-text mb-1">Total participants: <span th:text="${result.advancedCourseStudentsCount}">0</span></p>
                                         <p class="card-text mb-0">Teams Created: <span th:text="${result.advancedCourseTeamsCount}">0</span></p>
                                     </div>
                                 </div>
@@ -118,7 +118,7 @@
                                     </div>
                                     <div>
                                         <h5 class="card-title">Full Course Teams</h5>
-                                        <p class="card-text mb-1">Total Students: <span th:text="${result.fullCourseStudentsCount}">0</span></p>
+                                        <p class="card-text mb-1">Total participants: <span th:text="${result.fullCourseStudentsCount}">0</span></p>
                                         <p class="card-text mb-0">Teams Created: <span th:text="${result.fullCourseTeamsCount}">0</span></p>
                                     </div>
                                 </div>
@@ -273,7 +273,7 @@
                                     </div>
                                     <div>
                                         <h5 class="card-title" th:text="${result.eventType.displayName}">Event Type</h5>
-                                        <p class="card-text mb-1">Total Students: <span th:text="${result.totalStudents}">0</span></p>
+                                        <p class="card-text mb-1">Total participants: <span th:text="${result.totalStudents}">0</span></p>
                                         <p class="card-text mb-0">Assigned: <span th:text="${result.assignedStudents}">0</span></p>
                                     </div>
                                 </div>
@@ -352,10 +352,10 @@
                     </div>
                 </div>
                 
-                <!-- Unassigned Students -->
+                <!-- Unassigned Participants -->
                 <div class="card mb-4" th:if="${not #lists.isEmpty(result.unassignedStudents)}">
                     <div class="card-header bg-warning text-dark">
-                        <h4 class="m-0">Unassigned Students</h4>
+                        <h4 class="m-0">Unassigned Participants</h4>
                     </div>
                     <div class="card-body">
                         <table class="table table-sm table-hover">
