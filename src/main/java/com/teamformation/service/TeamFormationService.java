@@ -721,8 +721,9 @@ public class TeamFormationService {
             }
         }
         
-        // If teams are already balanced, we don't need to distribute more students
-        if (hasUnbalancedTeams) {
+        // We always need to distribute the remaining students
+        // The hasUnbalancedTeams check was causing issues - always distribute remaining students
+        {
             // Distribute students by timezone while enforcing balanced team sizes
             for (String timeZone : timeZones) {
                 List<Student> studentsInTimeZone = timeZoneGroups.get(timeZone);
@@ -882,8 +883,9 @@ public class TeamFormationService {
             }
         }
         
-        // If teams are already balanced, we don't need to distribute more students
-        if (hasUnbalancedTeams) {
+        // We always need to distribute the remaining students
+        // The hasUnbalancedTeams check was causing issues - always distribute remaining students
+        {
             // First, process students based on time zone compatibility and tracks
             List<String> timeZones = new ArrayList<>(timeZoneGroups.keySet());
             for (String timeZone : timeZones) {
