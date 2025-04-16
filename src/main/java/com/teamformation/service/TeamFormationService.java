@@ -12,7 +12,8 @@ import java.util.stream.Collectors;
 @Service
 public class TeamFormationService {
 
-    private static final int SQL_BOOTCAMP_TEAM_SIZE = 7; // SQL Bootcamp uses 7-member teams
+    private static final int SQL_BOOTCAMP_FULL_COURSE_TEAM_SIZE = 7; // SQL Bootcamp Full Course uses 7-member teams
+    private static final int SQL_BOOTCAMP_ADVANCED_TEAM_SIZE = 5; // SQL Bootcamp Advanced uses 5-member teams
     private static final int HACKATHON_TEAM_SIZE = 5; // Hackathons use 5-member teams
 
     public TeamFormationResult formTeams(List<Student> students, EventType eventType) {
@@ -311,23 +312,23 @@ public class TeamFormationService {
         System.out.println("Advanced course students: " + advancedCourseStudents.size());
         System.out.println("Full course students: " + fullCourseStudents.size());
         
-        // Calculate number of teams needed
-        int numTeams = (int) Math.ceil((double) numStudents / SQL_BOOTCAMP_TEAM_SIZE);
-        System.out.println("Initial number of teams: " + numTeams);
+        // Calculate number of teams needed using the appropriate team sizes
+        int advancedTeams = (int) Math.ceil((double) advancedCourseStudents.size() / SQL_BOOTCAMP_ADVANCED_TEAM_SIZE);
+        int fullCourseTeams = (int) Math.ceil((double) fullCourseStudents.size() / SQL_BOOTCAMP_FULL_COURSE_TEAM_SIZE);
         
-        // Initialize teams - create teams based on the actual number of advanced students
-        List<Team> teams = new ArrayList<>();
-        
-        // Calculate how many advanced teams we need - use exact number of advanced students divided by team size
-        int advancedTeams = (int)Math.ceil((double)advancedCourseStudents.size() / SQL_BOOTCAMP_TEAM_SIZE);
-        
-        // If we have less than 7 advanced students, they'll all go in one team
+        // Make sure we have at least one team for each course type if there are students
         if (advancedCourseStudents.size() > 0 && advancedTeams == 0) {
             advancedTeams = 1;
         }
+        if (fullCourseStudents.size() > 0 && fullCourseTeams == 0) {
+            fullCourseTeams = 1;
+        }
         
-        // Calculate full course teams based on remaining students
-        int fullCourseTeams = (int)Math.ceil((double)fullCourseStudents.size() / SQL_BOOTCAMP_TEAM_SIZE);
+        int numTeams = advancedTeams + fullCourseTeams;
+        System.out.println("Initial number of teams: " + numTeams);
+        
+        // Initialize teams - create teams based on the actual number of students in each course type
+        List<Team> teams = new ArrayList<>();
         
         // Debug output
         System.out.println("Creating " + advancedTeams + " advanced teams and " + fullCourseTeams + " full course teams");
@@ -475,7 +476,7 @@ public class TeamFormationService {
             }
             
             // If the full course teams are getting full, just find any team with space
-            if (teams.get(targetTeam).getSize() >= SQL_BOOTCAMP_TEAM_SIZE) {
+            if (teams.get(targetTeam).getSize() >= SQL_BOOTCAMP_FULL_COURSE_TEAM_SIZE) {
                 targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
             }
             
@@ -501,7 +502,7 @@ public class TeamFormationService {
             }
             
             // If the full course teams are getting full, just find any team with space
-            if (teams.get(targetTeam).getSize() >= SQL_BOOTCAMP_TEAM_SIZE) {
+            if (teams.get(targetTeam).getSize() >= SQL_BOOTCAMP_FULL_COURSE_TEAM_SIZE) {
                 targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
             }
             
