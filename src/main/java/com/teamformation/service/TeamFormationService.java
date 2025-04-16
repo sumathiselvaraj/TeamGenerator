@@ -43,7 +43,7 @@ public class TeamFormationService {
             teams = formSqlBootcampTeams(students);
             unassignedStudents = findUnassignedStudents(students, teams);
             summary = generateSqlBootcampSummary(teams, unassignedStudents);
-        } else if (eventType == EventType.PHASE1_GHERKIN_HACKATHON || eventType == EventType.PHASE2_SELENIUM_HACKATHON) {
+        } else if (eventType == EventType.SELENIUM_HACKATHON) {
             teams = formHackathonTeams(students, eventType);
             unassignedStudents = findUnassignedStudents(students, teams);
             summary = generateHackathonSummary(teams, unassignedStudents, eventType);

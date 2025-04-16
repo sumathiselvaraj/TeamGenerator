@@ -77,7 +77,7 @@ public class ExcelService {
                 if (trackIdx == -1 || courseTypeIdx == -1) {
                     throw new Exception("Required columns (Track, Course Type) missing for SQL Bootcamp");
                 }
-            } else if (eventType == EventType.PHASE1_GHERKIN_HACKATHON || eventType == EventType.PHASE2_SELENIUM_HACKATHON) {
+            } else if (eventType == EventType.SELENIUM_HACKATHON) {
                 if (trackIdx == -1 || workingStatusIdx == -1 || timeZoneIdx == -1) {
                     throw new Exception("Required columns (Track with Batch No, Working Status, Time Zone) missing for Hackathon");
                 }
@@ -153,7 +153,7 @@ public class ExcelService {
                             continue; // Skip rows without course type
                         }
                     } 
-                    else if (eventType == EventType.PHASE1_GHERKIN_HACKATHON || eventType == EventType.PHASE2_SELENIUM_HACKATHON) {
+                    else if (eventType == EventType.SELENIUM_HACKATHON) {
                         // Parse track with batch for Hackathons
                         if (trackIdx >= 0) {
                             Cell trackWithBatchCell = row.getCell(trackIdx);
