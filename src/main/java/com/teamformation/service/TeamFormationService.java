@@ -12,7 +12,8 @@ import java.util.stream.Collectors;
 @Service
 public class TeamFormationService {
 
-    private static final int TEAM_SIZE = 7;
+    private static final int SQL_BOOTCAMP_TEAM_SIZE = 7; // SQL Bootcamp uses 7-member teams
+    private static final int HACKATHON_TEAM_SIZE = 5; // Hackathons use 5-member teams
 
     public TeamFormationResult formTeams(List<Student> students, EventType eventType) {
         if (students == null || students.isEmpty()) {
@@ -112,7 +113,7 @@ public class TeamFormationService {
         List<Team> fullTeams = new ArrayList<>();
         
         // Calculate number of teams needed for advanced students (7 members per team)
-        int advancedTeamCount = Math.max(1, (advancedStudents.size() + TEAM_SIZE - 1) / TEAM_SIZE);
+        int advancedTeamCount = Math.max(1, (advancedStudents.size() + SQL_BOOTCAMP_TEAM_SIZE - 1) / SQL_BOOTCAMP_TEAM_SIZE);
         
         // Create advanced course teams
         for (int i = 0; i < advancedTeamCount; i++) {
@@ -124,7 +125,7 @@ public class TeamFormationService {
         }
         
         // Calculate number of teams needed for full course students (7 members per team)
-        int fullTeamCount = Math.max(1, (fullStudents.size() + TEAM_SIZE - 1) / TEAM_SIZE);
+        int fullTeamCount = Math.max(1, (fullStudents.size() + SQL_BOOTCAMP_TEAM_SIZE - 1) / SQL_BOOTCAMP_TEAM_SIZE);
         
         // Create full course teams
         for (int i = 0; i < fullTeamCount; i++) {
@@ -264,7 +265,7 @@ public class TeamFormationService {
         
         // Calculate the optimal number of teams based on team size (aiming for 5 students per team)
         int totalStudents = students.size();
-        int studentsPerTeam = 5; // Target size reduced to 5 per team as requested
+        int studentsPerTeam = HACKATHON_TEAM_SIZE; // Using the hackathon team size constant
         int numTeams = Math.max(totalStudents / studentsPerTeam, 1); // At least 1 team
         
         // Adjust number of teams to ensure more even distribution
@@ -792,7 +793,7 @@ public class TeamFormationService {
         
         // Calculate number of teams needed
         int totalStudents = students.size();
-        int numTeams = (totalStudents + TEAM_SIZE - 1) / TEAM_SIZE; // Ceiling division
+        int numTeams = (totalStudents + HACKATHON_TEAM_SIZE - 1) / HACKATHON_TEAM_SIZE; // Ceiling division
         
         // Create teams
         for (int i = 0; i < numTeams; i++) {
@@ -925,7 +926,7 @@ public class TeamFormationService {
         
         // Calculate the optimal number of teams based on team size (aiming for 5 students per team)
         int totalStudents = students.size();
-        int studentsPerTeam = 5; // Target size reduced to 5 per team as requested
+        int studentsPerTeam = HACKATHON_TEAM_SIZE; // Using the hackathon team size constant
         int numTeams = Math.max(totalStudents / studentsPerTeam, 1); // At least 1 team
         
         // Adjust number of teams to ensure more even distribution
