@@ -233,71 +233,89 @@ public class TeamFormationService {
         int numStudents = students.size();
         System.out.println("Forming SQL Bootcamp teams with " + numStudents + " students");
         
-        // Sort students by course type, placing 'advanced' ones first
-        students.sort((s1, s2) -> {
-            String type1 = s1.getCourseType() == null ? "" : s1.getCourseType().toLowerCase();
-            String type2 = s2.getCourseType() == null ? "" : s2.getCourseType().toLowerCase();
-            boolean isAdvanced1 = type1.contains("advanced") || type1.contains("full");
-            boolean isAdvanced2 = type2.contains("advanced") || type2.contains("full");
-            if (isAdvanced1 && !isAdvanced2) return -1;
-            if (!isAdvanced1 && isAdvanced2) return 1;
-            return 0;
-        });
+        // First identify advanced vs full course students
+        List<Student> advancedCourseStudents = new ArrayList<>();
+        List<Student> fullCourseStudents = new ArrayList<>();
+        
+        for (Student student : students) {
+            String courseType = student.getCourseType() != null ? student.getCourseType().toLowerCase() : "";
+            if (courseType.contains("advanced")) {
+                advancedCourseStudents.add(student);
+            } else if (courseType.contains("full")) {
+                fullCourseStudents.add(student);
+            } else {
+                // Default to full course if not specified
+                fullCourseStudents.add(student);
+            }
+        }
+        
+        System.out.println("Advanced course students: " + advancedCourseStudents.size());
+        System.out.println("Full course students: " + fullCourseStudents.size());
         
         // Calculate number of teams needed
         int numTeams = (int) Math.ceil((double) numStudents / SQL_BOOTCAMP_TEAM_SIZE);
         System.out.println("Initial number of teams: " + numTeams);
         
-        // Initialize teams
+        // Initialize teams - first half are Advanced teams, second half are Full Course teams
         List<Team> teams = new ArrayList<>();
-        for (int i = 0; i < numTeams; i++) {
+        int advancedTeams = Math.min(advancedCourseStudents.size() / SQL_BOOTCAMP_TEAM_SIZE + 1, numTeams / 2);
+        
+        // Ensure at least 1 advanced team if we have advanced students
+        if (advancedCourseStudents.size() > 0 && advancedTeams == 0) {
+            advancedTeams = 1;
+        }
+        
+        int fullCourseTeams = numTeams - advancedTeams;
+        
+        // Create Advanced Course teams
+        for (int i = 0; i < advancedTeams; i++) {
             teams.add(Team.builder()
-                    .name("Team " + (i + 1))
+                    .name("Advanced Team " + (i + 1))
                     .build());
         }
         
-        // Sort by track, this helps with distribution
-        students.sort(Comparator.comparing(Student::getTrack, 
+        // Create Full Course teams
+        for (int i = 0; i < fullCourseTeams; i++) {
+            teams.add(Team.builder()
+                    .name("Full Course Team " + (i + 1))
+                    .build());
+        }
+        
+        // Sort students by track to help with distribution
+        advancedCourseStudents.sort(Comparator.comparing(Student::getTrack, 
+                Comparator.nullsLast(String::compareToIgnoreCase)));
+        fullCourseStudents.sort(Comparator.comparing(Student::getTrack, 
                 Comparator.nullsLast(String::compareToIgnoreCase)));
         
-        // First, distribute advanced students evenly across teams
-        List<Student> advancedStudents = students.stream()
-                .filter(s -> s.getCourseType() != null && 
-                        (s.getCourseType().toLowerCase().contains("advanced") || 
-                         s.getCourseType().toLowerCase().contains("full")))
-                .collect(Collectors.toList());
-        
-        System.out.println("Number of advanced students: " + advancedStudents.size());
-        
-        // Remove advanced students from main list
-        students.removeAll(advancedStudents);
-        
-        // Distribute advanced students evenly
+        // First distribute advanced students to Advanced teams
         int[] expCount = new int[numTeams]; // Count of experienced students per team
         
-        for (Student student : advancedStudents) {
-            // Find the team with fewest experienced members
-            int targetTeam = findBestTeamForStudent(teams, student, expCount, numTeams);
+        // Assign advanced students to advanced teams first (teams 0 to advancedTeams-1)
+        for (Student student : advancedCourseStudents) {
+            // Find the best team among advanced teams
+            int targetTeam = 0;
+            for (int i = 1; i < advancedTeams; i++) {
+                if (teams.get(i).getSize() < teams.get(targetTeam).getSize()) {
+                    targetTeam = i;
+                }
+            }
             
             // Add student to the team
             teams.get(targetTeam).addMember(student);
-            expCount[targetTeam]++;
         }
         
-        // Now distribute remaining students by track to keep DA/SDET ratio balanced
-        // and DVLPR count as even as possible
-        
-        // First process DVLPR students to ensure one per team if possible
-        List<Student> dvlprStudents = students.stream()
+        // Now distribute full course students to the Full Course teams
+        // First identify DVLPR students in the full course list
+        List<Student> dvlprStudents = fullCourseStudents.stream()
                 .filter(s -> "DVLPR".equalsIgnoreCase(s.getTrack()))
                 .collect(Collectors.toList());
         
+        // Remove DVLPR students from full course list
+        fullCourseStudents.removeAll(dvlprStudents);
+        
         System.out.println("Number of DVLPR students: " + dvlprStudents.size());
         
-        // Remove DVLPR students from main list
-        students.removeAll(dvlprStudents);
-        
-        // Distribute one DVLPR per team if possible
+        // Distribute one DVLPR per team if possible, starting with advanced teams
         for (int i = 0; i < Math.min(dvlprStudents.size(), numTeams); i++) {
             teams.get(i).addMember(dvlprStudents.get(i));
         }
@@ -317,19 +335,87 @@ public class TeamFormationService {
             }
         }
         
-        // Distribute remaining students evenly, considering working status
-        int[] workingCount = new int[numTeams]; // Count of working students per team
+        // Distribute remaining full course students
+        // Focus on filling the Full Course teams (teams advancedTeams to numTeams-1)
         
-        // First, track current working students
+        // First sort by track to help with even distribution
+        List<Student> daStudents = fullCourseStudents.stream()
+                .filter(s -> "DA".equalsIgnoreCase(s.getTrack()))
+                .collect(Collectors.toList());
+                
+        List<Student> sdetStudents = fullCourseStudents.stream()
+                .filter(s -> "SDET".equalsIgnoreCase(s.getTrack()))
+                .collect(Collectors.toList());
+                
+        List<Student> otherStudents = fullCourseStudents.stream()
+                .filter(s -> !"DA".equalsIgnoreCase(s.getTrack()) && !"SDET".equalsIgnoreCase(s.getTrack()))
+                .collect(Collectors.toList());
+        
+        // Track working students per team
+        int[] workingCount = new int[numTeams];
+        
+        // Update working count for already assigned students
         for (int i = 0; i < numTeams; i++) {
             workingCount[i] = (int) teams.get(i).getMembers().stream()
                     .filter(s -> "Yes".equalsIgnoreCase(s.getWorkingStatus()))
                     .count();
         }
         
-        // Now distribute remaining students
-        for (Student student : students) {
-            // Find the team with fewest working members
+        // Distribute DA students first to full course teams
+        for (Student student : daStudents) {
+            // Find the best team among full course teams
+            int targetTeam = advancedTeams; // Start with the first full course team
+            for (int i = advancedTeams + 1; i < numTeams; i++) {
+                if (teams.get(i).getSize() < teams.get(targetTeam).getSize()) {
+                    targetTeam = i;
+                } else if (teams.get(i).getSize() == teams.get(targetTeam).getSize() && 
+                           workingCount[i] < workingCount[targetTeam]) {
+                    // If size is equal, prefer team with fewer working students
+                    targetTeam = i;
+                }
+            }
+            
+            // If the full course teams are getting full, just find any team with space
+            if (teams.get(targetTeam).getSize() >= SQL_BOOTCAMP_TEAM_SIZE) {
+                targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
+            }
+            
+            // Add student to the team
+            teams.get(targetTeam).addMember(student);
+            if ("Yes".equalsIgnoreCase(student.getWorkingStatus())) {
+                workingCount[targetTeam]++;
+            }
+        }
+        
+        // Then distribute SDET students
+        for (Student student : sdetStudents) {
+            // Find the best team among full course teams
+            int targetTeam = advancedTeams; // Start with the first full course team
+            for (int i = advancedTeams + 1; i < numTeams; i++) {
+                if (teams.get(i).getSize() < teams.get(targetTeam).getSize()) {
+                    targetTeam = i;
+                } else if (teams.get(i).getSize() == teams.get(targetTeam).getSize() && 
+                           workingCount[i] < workingCount[targetTeam]) {
+                    // If size is equal, prefer team with fewer working students
+                    targetTeam = i;
+                }
+            }
+            
+            // If the full course teams are getting full, just find any team with space
+            if (teams.get(targetTeam).getSize() >= SQL_BOOTCAMP_TEAM_SIZE) {
+                targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
+            }
+            
+            // Add student to the team
+            teams.get(targetTeam).addMember(student);
+            if ("Yes".equalsIgnoreCase(student.getWorkingStatus())) {
+                workingCount[targetTeam]++;
+            }
+        }
+        
+        // Finally distribute other students
+        for (Student student : otherStudents) {
+            // Just find any team with space
             int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
             
             // Add student to the team
@@ -343,7 +429,13 @@ public class TeamFormationService {
         for (Team team : teams) {
             StringBuilder builder = new StringBuilder();
             builder.append("Total: ").append(team.getSize()).append(", ");
-            builder.append("Advanced: ").append(team.countAdvancedCourseParticipants()).append(", ");
+            
+            if (team.getName().contains("Advanced")) {
+                builder.append("Advanced: ").append(team.countAdvancedCourseParticipants()).append(", ");
+            } else if (team.getName().contains("Full Course")) {
+                builder.append("Full Course: ").append(team.countFullCourseParticipants()).append(", ");
+            }
+            
             builder.append("DA: ").append(team.getDaCount()).append(", ");
             builder.append("SDET: ").append(team.getSdetCount()).append(", ");
             builder.append("DVLPR: ").append(team.getDvlprCount()).append(", ");

@@ -93,8 +93,14 @@ public class Team {
     public int countAdvancedCourseParticipants() {
         return (int) members.stream()
                 .filter(s -> s.getCourseType() != null && 
-                        (s.getCourseType().toLowerCase().contains("advanced") || 
-                         s.getCourseType().toLowerCase().contains("full")))
+                        s.getCourseType().toLowerCase().contains("advanced"))
+                .count();
+    }
+    
+    public int countFullCourseParticipants() {
+        return (int) members.stream()
+                .filter(s -> s.getCourseType() != null && 
+                        s.getCourseType().toLowerCase().contains("full"))
                 .count();
     }
     
