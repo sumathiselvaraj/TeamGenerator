@@ -12,7 +12,8 @@ import java.util.stream.Collectors;
 @Service
 public class TeamFormationService {
 
-    private static final int SQL_BOOTCAMP_TEAM_SIZE = 7; // SQL Bootcamp uses 7-member teams
+    private static final int SQL_BOOTCAMP_FULL_COURSE_TEAM_SIZE = 7; // SQL Bootcamp Full Course uses 7-member teams
+    private static final int SQL_BOOTCAMP_ADVANCED_TEAM_SIZE = 5; // SQL Bootcamp Advanced Course uses 5-member teams
     private static final int HACKATHON_TEAM_SIZE = 5; // Hackathons use 5-member teams
 
     public TeamFormationResult formTeams(List<Student> students, EventType eventType) {
@@ -112,8 +113,8 @@ public class TeamFormationService {
         List<Team> advancedTeams = new ArrayList<>();
         List<Team> fullTeams = new ArrayList<>();
 
-        // Calculate number of teams needed for advanced students (7 members per team)
-        int advancedTeamCount = Math.max(1, (advancedStudents.size() + SQL_BOOTCAMP_TEAM_SIZE - 1) / SQL_BOOTCAMP_TEAM_SIZE);
+        // Calculate number of teams needed for advanced students (5 members per team)
+        int advancedTeamCount = Math.max(1, (advancedStudents.size() + SQL_BOOTCAMP_ADVANCED_TEAM_SIZE - 1) / SQL_BOOTCAMP_ADVANCED_TEAM_SIZE);
 
         // Create advanced course teams
         for (int i = 0; i < advancedTeamCount; i++) {
@@ -125,7 +126,7 @@ public class TeamFormationService {
         }
 
         // Calculate number of teams needed for full course students (7 members per team)
-        int fullTeamCount = Math.max(1, (fullStudents.size() + SQL_BOOTCAMP_TEAM_SIZE - 1) / SQL_BOOTCAMP_TEAM_SIZE);
+        int fullTeamCount = Math.max(1, (fullStudents.size() + SQL_BOOTCAMP_FULL_COURSE_TEAM_SIZE - 1) / SQL_BOOTCAMP_FULL_COURSE_TEAM_SIZE);
 
         // Create full course teams
         for (int i = 0; i < fullTeamCount; i++) {
@@ -205,16 +206,28 @@ public class TeamFormationService {
         }
 
         // If any students remain, distribute them to teams with fewest members
+        // But ensure we respect the maximum team size limit of 7 members for full course teams
         List<Student> remainingStudents = new ArrayList<>();
         remainingStudents.addAll(sdetStudents);
         remainingStudents.addAll(daStudents);
         remainingStudents.addAll(dvlprStudents);
 
         for (Student student : remainingStudents) {
-            // Find team with fewest members
+            // Find team with fewest members that hasn't reached max size
             Team targetTeam = fullTeams.stream()
+                    .filter(team -> team.getSize() < SQL_BOOTCAMP_FULL_COURSE_TEAM_SIZE) // Only consider teams below max size
                     .min(Comparator.comparingInt(Team::getSize))
-                    .orElse(fullTeams.get(0));
+                    .orElse(null);
+            
+            // If all teams are at capacity, create a new team
+            if (targetTeam == null) {
+                targetTeam = Team.builder()
+                        .name("Full Course Team " + (fullTeams.size() + 1))
+                        .members(new ArrayList<>())
+                        .build();
+                fullTeams.add(targetTeam);
+            }
+            
             targetTeam.addMember(student);
         }
 
