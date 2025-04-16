@@ -18,24 +18,55 @@
                 <!-- Info section -->
                 <div class="info-section p-3 mb-4 rounded">
                     <h5><i data-feather="info" class="me-2"></i> Instructions</h5>
-                    <ol>
-                        <li>Upload an Excel file with student data in the following format:
-                            <ul>
-                                <li>Timestamp</li>
-                                <li>Email Address</li>
-                                <li>Full Name</li>
-                                <li>Track (SDET/DA)</li>
-                                <li>Batch No</li>
-                                <li>Course Type (Advanced/Full)</li>
-                            </ul>
-                        </li>
-                        <li>The application will create teams based on course type and track:
-                            <ul>
-                                <li>Advanced course students are divided equally in 7-member teams</li>
-                                <li>Full course students are formed in 7-member teams with balanced DA/SDET distribution</li>
-                            </ul>
-                        </li>
-                    </ol>
+                    
+                    <!-- SQL Bootcamp instructions -->
+                    <div class="mb-3 border-bottom pb-3">
+                        <h6 class="text-primary"><i data-feather="database" class="me-1"></i> SQL Bootcamp</h6>
+                        <ol>
+                            <li>Upload an Excel file with student data in the following format:
+                                <ul>
+                                    <li>Timestamp</li>
+                                    <li>Email Address</li>
+                                    <li>Full Name</li>
+                                    <li>Track (SDET/DA)</li>
+                                    <li>Batch No</li>
+                                    <li>Course Type (Advanced/Full)</li>
+                                </ul>
+                            </li>
+                            <li>The application will create teams based on course type and track:
+                                <ul>
+                                    <li>Advanced course students are divided equally in 7-member teams</li>
+                                    <li>Full course students are formed in 7-member teams with balanced DA/SDET distribution</li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </div>
+                    
+                    <!-- Gherkin/Selenium Hackathon instructions -->
+                    <div>
+                        <h6 class="text-success"><i data-feather="code" class="me-1"></i> Phase 1 Gherkin & Phase 2 Selenium Hackathon</h6>
+                        <ol>
+                            <li>Upload an Excel file with student data in the following format:
+                                <ul>
+                                    <li>Timestamp</li>
+                                    <li>Email Address</li>
+                                    <li>Full Name</li>
+                                    <li>Track with Batch No</li>
+                                    <li>Are you working?</li>
+                                    <li>Time Zone</li>
+                                    <li>Have you completed DSAlgo Project</li>
+                                    <li>Have you participated in previous selenium hackathon</li>
+                                </ul>
+                            </li>
+                            <li>The application will create teams with these rules:
+                                <ul>
+                                    <li>Students with previous hackathon experience are distributed evenly across teams</li>
+                                    <li>Working students are evenly distributed across teams</li>
+                                    <li>Teams are formed considering time zone compatibility (EST with CST, CST with PST)</li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </div>
                 </div>
                 
                 <!-- Error message display -->
@@ -112,7 +143,7 @@
                 </div>
             </div>
             <div class="card-footer text-center">
-                &copy; 2023 Team Formation Application
+                &copy; 2025 Team Formation Application
             </div>
         </div>
     </div>
