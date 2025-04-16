@@ -53,40 +53,48 @@ public class TeamFormationResult {
             return;
         }
         
-        // Classify teams based on their name
-        advancedCourseTeams = teams.stream()
-                .filter(team -> team.getName().contains("Advanced"))
-                .collect(Collectors.toList());
+        // Count total Advanced and Full course students in all teams
+        int totalAdvancedStudents = 0;
+        int totalFullCourseStudents = 0;
         
-        fullCourseTeams = teams.stream()
-                .filter(team -> team.getName().contains("Full Course"))
-                .collect(Collectors.toList());
+        for (Team team : teams) {
+            totalAdvancedStudents += team.countAdvancedCourseParticipants();
+            totalFullCourseStudents += team.countFullCourseParticipants();
+        }
         
-        // If no teams were classified, do a backup classification based on student course types
-        if (advancedCourseTeams.isEmpty() && fullCourseTeams.isEmpty()) {
-            // For SQL Bootcamp, if team naming doesn't work, separate based on course type counts
-            for (Team team : teams) {
-                // Count advanced and full course students in this team
-                int advancedCount = team.countAdvancedCourseParticipants();
-                int fullCount = team.countFullCourseParticipants();
-                
-                // Add to appropriate list based on majority
-                if (advancedCount > fullCount) {
-                    advancedCourseTeams.add(team);
-                } else {
-                    fullCourseTeams.add(team);
-                }
+        System.out.println("Total student count check - Advanced: " + totalAdvancedStudents + 
+                          ", Full Course: " + totalFullCourseStudents);
+        
+        // Classify teams based only on their name, exactly as they're created
+        advancedCourseTeams = new ArrayList<>();
+        fullCourseTeams = new ArrayList<>();
+        
+        for (Team team : teams) {
+            // Only add team to Advanced list if it actually contains Advanced students
+            // and has the correct name
+            if (team.getName().contains("Advanced") && team.countAdvancedCourseParticipants() > 0) {
+                advancedCourseTeams.add(team);
+            } 
+            // Only add team to Full Course list if it contains no Advanced students
+            // and has the correct name
+            else if (team.getName().contains("Full Course")) {
+                fullCourseTeams.add(team);
             }
         }
         
-        // Calculate student counts
-        advancedCourseStudentsCount = advancedCourseTeams.stream()
-                .mapToInt(Team::getSize)
-                .sum();
+        // Calculate student counts differently, only counting actual Advanced/Full students
+        advancedCourseStudentsCount = 0;
+        fullCourseStudentsCount = 0;
         
-        fullCourseStudentsCount = fullCourseTeams.stream()
-                .mapToInt(Team::getSize)
-                .sum();
+        // Count only Advanced students in the Advanced teams 
+        for (Team team : advancedCourseTeams) {
+            advancedCourseStudentsCount += team.countAdvancedCourseParticipants();
+        }
+        
+        // Count only Full Course students in the Full course teams
+        for (Team team : fullCourseTeams) {
+            fullCourseStudentsCount += team.countFullCourseParticipants();
+        }
         
         System.out.println("Classified teams: Advanced teams: " + advancedCourseTeams.size() + 
                 ", Advanced students: " + advancedCourseStudentsCount + 
