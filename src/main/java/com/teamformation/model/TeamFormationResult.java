@@ -12,25 +12,19 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TeamFormationResult {
+    private List<Team> teams;
+    private List<Student> unassignedStudents;
     private EventType eventType;
-    private List<Team> advancedCourseTeams;
-    private List<Team> fullCourseTeams;
-    private int advancedCourseStudentsCount;
-    private int fullCourseStudentsCount;
-    
-    public int getAdvancedCourseTeamsCount() {
-        return advancedCourseTeams != null ? advancedCourseTeams.size() : 0;
-    }
-    
-    public int getFullCourseTeamsCount() {
-        return fullCourseTeams != null ? fullCourseTeams.size() : 0;
-    }
-    
-    public int getTotalStudentsCount() {
-        return advancedCourseStudentsCount + fullCourseStudentsCount;
-    }
-    
-    public int getTotalTeamsCount() {
-        return getAdvancedCourseTeamsCount() + getFullCourseTeamsCount();
+    private String summary;
+    private int totalStudents;
+    private int assignedStudents;
+
+    // Get distributions for reporting
+    public String getAssignmentRate() {
+        if (totalStudents == 0) {
+            return "0%";
+        }
+        double rate = (double) assignedStudents / totalStudents * 100;
+        return String.format("%.1f%%", rate);
     }
 }
