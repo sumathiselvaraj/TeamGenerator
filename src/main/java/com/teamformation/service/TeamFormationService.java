@@ -264,16 +264,22 @@ public class TeamFormationService {
         int numTeams = (int) Math.ceil((double) numStudents / SQL_BOOTCAMP_TEAM_SIZE);
         System.out.println("Initial number of teams: " + numTeams);
         
-        // Initialize teams - first half are Advanced teams, second half are Full Course teams
+        // Initialize teams - create teams based on the actual number of advanced students
         List<Team> teams = new ArrayList<>();
-        int advancedTeams = Math.min(advancedCourseStudents.size() / SQL_BOOTCAMP_TEAM_SIZE + 1, numTeams / 2);
         
-        // Ensure at least 1 advanced team if we have advanced students
+        // Calculate how many advanced teams we need - use exact number of advanced students divided by team size
+        int advancedTeams = (int)Math.ceil((double)advancedCourseStudents.size() / SQL_BOOTCAMP_TEAM_SIZE);
+        
+        // If we have less than 7 advanced students, they'll all go in one team
         if (advancedCourseStudents.size() > 0 && advancedTeams == 0) {
             advancedTeams = 1;
         }
         
-        int fullCourseTeams = numTeams - advancedTeams;
+        // Calculate full course teams based on remaining students
+        int fullCourseTeams = (int)Math.ceil((double)fullCourseStudents.size() / SQL_BOOTCAMP_TEAM_SIZE);
+        
+        // Debug output
+        System.out.println("Creating " + advancedTeams + " advanced teams and " + fullCourseTeams + " full course teams");
         
         // Create Advanced Course teams
         for (int i = 0; i < advancedTeams; i++) {
@@ -323,9 +329,25 @@ public class TeamFormationService {
         
         System.out.println("Number of DVLPR students: " + dvlprStudents.size());
         
-        // Distribute one DVLPR per team if possible, starting with advanced teams
-        for (int i = 0; i < Math.min(dvlprStudents.size(), numTeams); i++) {
-            teams.get(i).addMember(dvlprStudents.get(i));
+        // For SQL Bootcamp, we need to distribute 1 DVLPR per team if possible
+        // For Advanced teams, start with index 0
+        int teamIndex = 0;
+        for (int i = 0; i < Math.min(dvlprStudents.size(), advancedTeams); i++) {
+            // Only assign to advanced teams first
+            if (teamIndex < advancedTeams) {
+                teams.get(teamIndex).addMember(dvlprStudents.get(i));
+                teamIndex++;
+            }
+        }
+        
+        // For Full Course teams, start with the first full course team
+        teamIndex = advancedTeams;
+        for (int i = advancedTeams; i < Math.min(dvlprStudents.size(), numTeams); i++) {
+            // Now assign to full course teams
+            if (teamIndex < teams.size()) {
+                teams.get(teamIndex).addMember(dvlprStudents.get(i));
+                teamIndex++;
+            }
         }
         
         // If more DVLPRs than teams, distribute the rest

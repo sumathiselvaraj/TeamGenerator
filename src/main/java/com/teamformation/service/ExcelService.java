@@ -156,7 +156,19 @@ public class ExcelService {
                         // Parse course type
                         Cell courseTypeCell = row.getCell(courseTypeIdx);
                         if (courseTypeCell != null) {
-                            student.setCourseType(getCellValueAsString(courseTypeCell));
+                            String courseType = getCellValueAsString(courseTypeCell).trim();
+                            // Standardize course type names for consistency
+                            if (courseType.toLowerCase().contains("advanced")) {
+                                student.setCourseType("Advanced");
+                                System.out.println("Excel processing - Advanced student: " + student.getName());
+                            } else if (courseType.toLowerCase().contains("full")) {
+                                student.setCourseType("Full Course");
+                                System.out.println("Excel processing - Full Course student: " + student.getName());
+                            } else {
+                                // Default if not recognized
+                                student.setCourseType(courseType);
+                                System.out.println("Excel processing - Unknown course type: " + student.getName() + " - " + courseType);
+                            }
                         } else {
                             continue; // Skip rows without course type
                         }
