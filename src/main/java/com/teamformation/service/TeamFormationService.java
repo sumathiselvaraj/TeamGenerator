@@ -53,10 +53,58 @@ public class TeamFormationService {
                         .build();
         }
 
+        // Build a more comprehensive summary
+        StringBuilder summaryBuilder = new StringBuilder();
+        summaryBuilder.append("Created ").append(teams.size()).append(" teams for ").append(eventType.getDisplayName()).append("\n");
+        
+        // Calculate total students
+        int totalStudents = teams.stream().mapToInt(Team::getSize).sum();
+        summaryBuilder.append("Total students: ").append(totalStudents).append("\n");
+        
+        // Add distribution statistics based on event type
+        if (eventType == EventType.SQL_BOOTCAMP) {
+            // Count tracks for SQL Bootcamp
+            int daCount = teams.stream().mapToInt(Team::getDaCount).sum();
+            int sdetCount = teams.stream().mapToInt(Team::getSdetCount).sum();
+            int dvlprCount = teams.stream().mapToInt(Team::getDvlprCount).sum();
+            int advancedCount = teams.stream().mapToInt(Team::countAdvancedCourseParticipants).sum();
+            int workingCount = teams.stream().mapToInt(t -> t.countByWorkingStatus("Yes")).sum();
+            
+            summaryBuilder.append("Distribution - SDET: ").append(sdetCount)
+                      .append(", DA: ").append(daCount)
+                      .append(", DVLPR: ").append(dvlprCount)
+                      .append(", Advanced: ").append(advancedCount)
+                      .append(", Working: ").append(workingCount);
+        } else if (eventType == EventType.PHASE1_API_HACKATHON || eventType == EventType.PHASE2_API_HACKATHON) {
+            // Count tracks for API Hackathon
+            int daCount = teams.stream().mapToInt(Team::getDaCount).sum();
+            int sdetCount = teams.stream().mapToInt(Team::getSdetCount).sum();
+            int dvlprCount = teams.stream().mapToInt(t -> t.countByTrack("DVLPR")).sum();
+            int workingCount = teams.stream().mapToInt(t -> t.countByWorkingStatus("Yes")).sum();
+            int prevHackathonCount = teams.stream().mapToInt(t -> t.countByPreviousHackathon("Yes")).sum();
+            
+            summaryBuilder.append("Distribution - SDET: ").append(sdetCount)
+                      .append(", DA: ").append(daCount)
+                      .append(", DVLPR: ").append(dvlprCount)
+                      .append(", Working: ").append(workingCount)
+                      .append(", Previous API Hackathon: ").append(prevHackathonCount);
+        } else {
+            // For other hackathon types
+            int sdetCount = teams.stream().mapToInt(Team::getSdetCount).sum();
+            int daCount = teams.stream().mapToInt(Team::getDaCount).sum();
+            int workingCount = teams.stream().mapToInt(t -> t.countByWorkingStatus("Yes")).sum();
+            int prevHackathonCount = teams.stream().mapToInt(t -> t.countByPreviousHackathon("Yes")).sum();
+            
+            summaryBuilder.append("Distribution - SDET: ").append(sdetCount)
+                      .append(", DA: ").append(daCount)
+                      .append(", Working: ").append(workingCount)
+                      .append(", Previous Hackathon: ").append(prevHackathonCount);
+        }
+        
         return TeamFormationResult.builder()
                 .teams(teams)
                 .eventType(eventType)
-                .summary("Successfully formed " + teams.size() + " teams")
+                .summary(summaryBuilder.toString())
                 .build();
     }
 

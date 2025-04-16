@@ -52,6 +52,12 @@ public class Team {
                 .count();
     }
     
+    public int countByPreviousHackathon(String status) {
+        return (int) members.stream()
+                .filter(s -> status.equalsIgnoreCase(s.getPreviousHackathonParticipation()))
+                .count();
+    }
+    
     /**
      * Checks if the team already has a student from the specified batch number
      * @param batchNumber Batch number to check 
