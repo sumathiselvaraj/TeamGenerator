@@ -532,8 +532,164 @@ public class TeamFormationService {
     }
     
     private List<Team> formPhase2ApiHackathonTeams(List<Student> students) {
-        // Implementation for Phase 2 API Hackathon team formation
-        return new ArrayList<>();
+        int numStudents = students.size();
+        System.out.println("Forming Phase 2 API Hackathon teams with " + numStudents + " students");
+        
+        // Calculate number of teams needed (5 members per team for API Hackathon)
+        int numTeams = (int) Math.ceil((double) numStudents / HACKATHON_TEAM_SIZE);
+        System.out.println("Initial number of teams: " + numTeams);
+        
+        // Initialize teams
+        List<Team> teams = new ArrayList<>();
+        for (int i = 0; i < numTeams; i++) {
+            teams.add(Team.builder()
+                    .name("Team " + (i + 1))
+                    .build());
+        }
+        
+        // First, identify students who participated in previous API hackathons
+        List<Student> experiencedStudents = students.stream()
+                .filter(s -> "Yes".equalsIgnoreCase(s.getPreviousHackathonParticipation()))
+                .collect(Collectors.toList());
+        
+        // Remove experienced students from main list for separate distribution
+        List<Student> remainingStudents = new ArrayList<>(students);
+        remainingStudents.removeAll(experiencedStudents);
+        
+        System.out.println("Number of students with previous API Hackathon experience: " + experiencedStudents.size());
+        
+        // Distribute experienced students evenly across teams
+        int[] expCount = new int[numTeams]; // Count of experienced students per team
+        
+        for (Student student : experiencedStudents) {
+            // Find the team with fewest experienced members, ensuring batch diversity
+            int targetTeam = findBestTeamForStudent(teams, student, expCount, numTeams);
+            
+            // Add student to the team
+            teams.get(targetTeam).addMember(student);
+            expCount[targetTeam]++;
+        }
+        
+        // Next, distribute working students
+        List<Student> workingStudents = remainingStudents.stream()
+                .filter(s -> "Yes".equalsIgnoreCase(s.getWorkingStatus()))
+                .collect(Collectors.toList());
+        
+        // Remove working students from main list
+        remainingStudents.removeAll(workingStudents);
+        
+        System.out.println("Number of working students: " + workingStudents.size());
+        
+        // Track working students per team
+        int[] workingCount = new int[numTeams];
+        
+        // Update working count for already assigned students
+        for (int i = 0; i < numTeams; i++) {
+            workingCount[i] = (int) teams.get(i).getMembers().stream()
+                    .filter(s -> "Yes".equalsIgnoreCase(s.getWorkingStatus()))
+                    .count();
+        }
+        
+        // Distribute working students evenly
+        for (Student student : workingStudents) {
+            // Find the team with fewest working members, ensuring batch diversity
+            int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
+            
+            // Add student to the team
+            teams.get(targetTeam).addMember(student);
+            workingCount[targetTeam]++;
+        }
+        
+        // Now sort remaining students by time zone to group compatible time zones
+        Map<String, List<Student>> timeZoneGroups = new HashMap<>();
+        
+        for (Student student : remainingStudents) {
+            String normalizedTimeZone = normalizeTimeZone(student.getTimeZone());
+            if (!timeZoneGroups.containsKey(normalizedTimeZone)) {
+                timeZoneGroups.put(normalizedTimeZone, new ArrayList<>());
+            }
+            timeZoneGroups.get(normalizedTimeZone).add(student);
+        }
+        
+        // Log time zone distribution
+        for (Map.Entry<String, List<Student>> entry : timeZoneGroups.entrySet()) {
+            System.out.println("Time zone " + entry.getKey() + ": " + entry.getValue().size() + " students");
+        }
+        
+        // For Phase 2 API Hackathon, we only need to split DVLPR track equally
+        
+        // First, process students based on time zone compatibility
+        List<String> timeZones = new ArrayList<>(timeZoneGroups.keySet());
+        for (String timeZone : timeZones) {
+            List<Student> studentsInTimeZone = timeZoneGroups.get(timeZone);
+            
+            // Process DVLPR track students first (since they are the key focus in Phase 2)
+            List<Student> dvlprStudents = studentsInTimeZone.stream()
+                    .filter(s -> "DVLPR".equalsIgnoreCase(s.getTrack()))
+                    .collect(Collectors.toList());
+            
+            for (Student student : dvlprStudents) {
+                // Find the best team based on batch diversity and team size
+                int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
+                teams.get(targetTeam).addMember(student);
+            }
+            
+            // Then process other track students
+            List<Student> otherStudents = studentsInTimeZone.stream()
+                    .filter(s -> !"DVLPR".equalsIgnoreCase(s.getTrack()))
+                    .collect(Collectors.toList());
+            
+            for (Student student : otherStudents) {
+                // Find the best team based on batch diversity and team size
+                int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
+                teams.get(targetTeam).addMember(student);
+            }
+        }
+        
+        // Calculate and set statistics for each team
+        for (Team team : teams) {
+            // Generate statistics for time zones
+            StringBuilder timeZoneStats = new StringBuilder();
+            Map<String, Long> tzCount = team.getMembers().stream()
+                    .collect(Collectors.groupingBy(
+                            s -> normalizeTimeZone(s.getTimeZone()),
+                            Collectors.counting()
+                    ));
+            
+            for (Map.Entry<String, Long> entry : tzCount.entrySet()) {
+                timeZoneStats.append(entry.getKey()).append(": ").append(entry.getValue()).append(", ");
+            }
+            
+            // Count students with previous hackathon experience
+            int withPreviousHackathonCount = (int) team.getMembers().stream()
+                    .filter(s -> "Yes".equalsIgnoreCase(s.getPreviousHackathonParticipation()))
+                    .count();
+            
+            // Count working students
+            int workingStudentCount = (int) team.getMembers().stream()
+                    .filter(s -> "Yes".equalsIgnoreCase(s.getWorkingStatus()))
+                    .count();
+            
+            team.setStatistics(String.format(
+                    "Total: %d, DA: %d, DVLPR: %d, Working: %d, Experienced: %d, Time Zones: %s",
+                    team.getSize(),
+                    team.getDaCount(),
+                    team.countByTrack("DVLPR"),
+                    workingStudentCount,
+                    withPreviousHackathonCount,
+                    timeZoneStats.length() > 0 ? timeZoneStats.substring(0, timeZoneStats.length() - 2) : "None"));
+        }
+        
+        // Print team sizes for verification
+        System.out.println("Final team sizes for Phase 2 API Hackathon:");
+        for (int i = 0; i < teams.size(); i++) {
+            System.out.println("Team " + (i+1) + ": " + teams.get(i).getSize() + " members");
+        }
+        
+        // Remove any empty teams
+        teams.removeIf(team -> team.getMembers().isEmpty());
+        
+        return teams;
     }
     
     private List<Team> formScrapingHackathonTeams(List<Student> students) {
