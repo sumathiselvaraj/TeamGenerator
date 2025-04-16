@@ -144,7 +144,30 @@ public class TeamFormationService {
             
             if ("Advanced".equals(student.getCourseType())) {
                 // Advanced students must go to Advanced teams (names contain "Advanced")
-                int targetTeam = 0;
+                int targetTeam = -1;
+                int minSize = Integer.MAX_VALUE;
+                
+                for (int i = 0; i < numTeams; i++) {
+                    if (teams.get(i).getName().contains("Advanced")) {
+                        // Only consider teams that haven't reached the maximum size
+                        if (teams.get(i).getSize() < SQL_BOOTCAMP_ADVANCED_TEAM_SIZE) {
+                            if (targetTeam == -1 || teams.get(i).getSize() < minSize) {
+                                targetTeam = i;
+                                minSize = teams.get(i).getSize();
+                            } else if (teams.get(i).getSize() == minSize && workingCount[i] < workingCount[targetTeam]) {
+                                targetTeam = i;
+                            }
+                        }
+                    }
+                }
+                
+                // If we found an Advanced team with space, return it
+                if (targetTeam != -1) {
+                    return targetTeam;
+                }
+                
+                // If all Advanced teams are full, find the one with smallest overflow
+                targetTeam = 0;
                 boolean foundAdvancedTeam = false;
                 
                 for (int i = 0; i < numTeams; i++) {
@@ -152,7 +175,10 @@ public class TeamFormationService {
                         if (!foundAdvancedTeam) {
                             targetTeam = i;
                             foundAdvancedTeam = true;
-                        } else if (workingCount[i] < workingCount[targetTeam]) {
+                        } else if (teams.get(i).getSize() < teams.get(targetTeam).getSize()) {
+                            targetTeam = i;
+                        } else if (teams.get(i).getSize() == teams.get(targetTeam).getSize() && 
+                                  workingCount[i] < workingCount[targetTeam]) {
                             targetTeam = i;
                         }
                     }
@@ -160,6 +186,9 @@ public class TeamFormationService {
                 
                 // If we found an Advanced team, return it
                 if (foundAdvancedTeam) {
+                    System.out.println("WARNING: All Advanced teams are full, placing " + student.getName() + 
+                                     " in team " + teams.get(targetTeam).getName() + 
+                                     " with " + teams.get(targetTeam).getSize() + " members");
                     return targetTeam;
                 }
                 
@@ -169,7 +198,30 @@ public class TeamFormationService {
             } 
             else {
                 // Full Course students must go to Full Course teams (names contain "Full Course")
-                int targetTeam = 0;
+                int targetTeam = -1;
+                int minSize = Integer.MAX_VALUE;
+                
+                for (int i = 0; i < numTeams; i++) {
+                    if (teams.get(i).getName().contains("Full Course")) {
+                        // Only consider teams that haven't reached the maximum size
+                        if (teams.get(i).getSize() < SQL_BOOTCAMP_FULL_COURSE_TEAM_SIZE) {
+                            if (targetTeam == -1 || teams.get(i).getSize() < minSize) {
+                                targetTeam = i;
+                                minSize = teams.get(i).getSize();
+                            } else if (teams.get(i).getSize() == minSize && workingCount[i] < workingCount[targetTeam]) {
+                                targetTeam = i;
+                            }
+                        }
+                    }
+                }
+                
+                // If we found a Full Course team with space, return it
+                if (targetTeam != -1) {
+                    return targetTeam;
+                }
+                
+                // If all Full Course teams are full, find the one with smallest overflow
+                targetTeam = 0;
                 boolean foundFullCourseTeam = false;
                 
                 for (int i = 0; i < numTeams; i++) {
@@ -177,7 +229,10 @@ public class TeamFormationService {
                         if (!foundFullCourseTeam) {
                             targetTeam = i;
                             foundFullCourseTeam = true;
-                        } else if (workingCount[i] < workingCount[targetTeam]) {
+                        } else if (teams.get(i).getSize() < teams.get(targetTeam).getSize()) {
+                            targetTeam = i;
+                        } else if (teams.get(i).getSize() == teams.get(targetTeam).getSize() && 
+                                  workingCount[i] < workingCount[targetTeam]) {
                             targetTeam = i;
                         }
                     }
@@ -185,6 +240,9 @@ public class TeamFormationService {
                 
                 // If we found a Full Course team, return it
                 if (foundFullCourseTeam) {
+                    System.out.println("WARNING: All Full Course teams are full, placing " + student.getName() + 
+                                     " in team " + teams.get(targetTeam).getName() + 
+                                     " with " + teams.get(targetTeam).getSize() + " members");
                     return targetTeam;
                 }
                 
@@ -279,6 +337,8 @@ public class TeamFormationService {
     private List<Team> formSqlBootcampTeams(List<Student> students) {
         int numStudents = students.size();
         System.out.println("Forming SQL Bootcamp teams with " + numStudents + " students");
+        System.out.println("Using maximum team sizes: Advanced=" + SQL_BOOTCAMP_ADVANCED_TEAM_SIZE + 
+                         ", Full Course=" + SQL_BOOTCAMP_FULL_COURSE_TEAM_SIZE);
         
         // First identify advanced vs full course students
         List<Student> advancedCourseStudents = new ArrayList<>();
