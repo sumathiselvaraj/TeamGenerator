@@ -53,14 +53,16 @@ public class TeamFormationResult {
             return;
         }
         
+        // Better classification based on team names
         advancedCourseTeams = teams.stream()
-                .filter(team -> team.getName().contains("Advanced"))
+                .filter(team -> team.getName().toLowerCase().contains("advanced"))
                 .collect(Collectors.toList());
         
         fullCourseTeams = teams.stream()
-                .filter(team -> team.getName().contains("Full"))
+                .filter(team -> team.getName().toLowerCase().contains("full"))
                 .collect(Collectors.toList());
         
+        // Calculate student counts
         advancedCourseStudentsCount = advancedCourseTeams.stream()
                 .mapToInt(Team::getSize)
                 .sum();
@@ -68,5 +70,10 @@ public class TeamFormationResult {
         fullCourseStudentsCount = fullCourseTeams.stream()
                 .mapToInt(Team::getSize)
                 .sum();
+        
+        System.out.println("Classified teams: Advanced teams: " + advancedCourseTeams.size() + 
+                ", Advanced students: " + advancedCourseStudentsCount + 
+                ", Full teams: " + fullCourseTeams.size() + 
+                ", Full students: " + fullCourseStudentsCount);
     }
 }

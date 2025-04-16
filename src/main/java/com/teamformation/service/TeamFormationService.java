@@ -85,34 +85,53 @@ public class TeamFormationService {
     private List<Team> formSqlBootcampTeams(List<Student> students) {
         List<Team> teams = new ArrayList<>();
         
-        // Split students by course type
+        // Process and categorize students by course type
         List<Student> advancedStudents = students.stream()
                 .filter(student -> student.getCourseType() != null && 
-                        (student.getCourseType().toUpperCase().contains("ADVANCED")))
+                        (student.getCourseType().toLowerCase().contains("advanced") &&
+                         !student.getCourseType().toLowerCase().contains("full")))
                 .collect(Collectors.toList());
         
         List<Student> fullStudents = students.stream()
                 .filter(student -> student.getCourseType() != null && 
-                        (student.getCourseType().toUpperCase().contains("FULL")))
+                        (student.getCourseType().toLowerCase().contains("full")))
                 .collect(Collectors.toList());
         
-        // Calculate number of teams needed for all students
-        int totalStudents = students.size();
-        int numTeams = (totalStudents + TEAM_SIZE - 1) / TEAM_SIZE; // Ceiling division
+        System.out.println("Found " + advancedStudents.size() + " advanced students and " + fullStudents.size() + " full students");
         
-        // Create teams
-        for (int i = 0; i < numTeams; i++) {
+        // Create separate lists for advanced and full course teams
+        List<Team> advancedTeams = new ArrayList<>();
+        List<Team> fullTeams = new ArrayList<>();
+        
+        // Calculate number of teams needed for advanced students (7 members per team)
+        int advancedTeamCount = Math.max(1, (advancedStudents.size() + TEAM_SIZE - 1) / TEAM_SIZE);
+        
+        // Create advanced course teams
+        for (int i = 0; i < advancedTeamCount; i++) {
             Team team = Team.builder()
-                    .name("Team " + (i + 1))
+                    .name("Advanced Team " + (i + 1))
                     .members(new ArrayList<>())
                     .build();
-            teams.add(team);
+            advancedTeams.add(team);
+        }
+        
+        // Calculate number of teams needed for full course students (7 members per team)
+        int fullTeamCount = Math.max(1, (fullStudents.size() + TEAM_SIZE - 1) / TEAM_SIZE);
+        
+        // Create full course teams
+        for (int i = 0; i < fullTeamCount; i++) {
+            Team team = Team.builder()
+                    .name("Full Course Team " + (i + 1))
+                    .members(new ArrayList<>())
+                    .build();
+            fullTeams.add(team);
         }
         
         // Distribute advanced course students evenly
         Collections.shuffle(advancedStudents); // Randomize order
         for (int i = 0; i < advancedStudents.size(); i++) {
-            teams.get(i % numTeams).addMember(advancedStudents.get(i));
+            Student student = advancedStudents.get(i);
+            advancedTeams.get(i % advancedTeamCount).addMember(student);
         }
         
         // Split full course students by track
@@ -124,39 +143,81 @@ public class TeamFormationService {
                 .filter(s -> "DA".equals(s.getTrack()))
                 .collect(Collectors.toList());
         
-        // Distribute SDET students across teams
+        System.out.println("Full course: " + sdetStudents.size() + " SDET students and " + daStudents.size() + " DA students");
+        
+        // Try to distribute SDET and DA students to balance each team's ratio
         Collections.shuffle(sdetStudents);
-        for (int i = 0; i < sdetStudents.size(); i++) {
-            // Find team with fewest members
-            Team targetTeam = teams.stream()
-                    .min(Comparator.comparingInt(Team::getSize))
-                    .orElse(teams.get(0));
-            targetTeam.addMember(sdetStudents.get(i));
+        Collections.shuffle(daStudents);
+        
+        // Basic strategy: try to assign equal numbers of each track to each team
+        for (int i = 0; i < fullTeamCount; i++) {
+            Team team = fullTeams.get(i);
+            
+            // Determine expected number of SDET and DA per team
+            int sdetPerTeam = sdetStudents.size() / fullTeamCount;
+            int daPerTeam = daStudents.size() / fullTeamCount;
+            
+            // Add extra student to some teams if division isn't even
+            if (i < sdetStudents.size() % fullTeamCount) {
+                sdetPerTeam++;
+            }
+            
+            if (i < daStudents.size() % fullTeamCount) {
+                daPerTeam++;
+            }
+            
+            // Add SDET students to team
+            for (int j = 0; j < sdetPerTeam && !sdetStudents.isEmpty(); j++) {
+                team.addMember(sdetStudents.remove(0));
+            }
+            
+            // Add DA students to team
+            for (int j = 0; j < daPerTeam && !daStudents.isEmpty(); j++) {
+                team.addMember(daStudents.remove(0));
+            }
         }
         
-        // Distribute DA students across teams
-        Collections.shuffle(daStudents);
-        for (int i = 0; i < daStudents.size(); i++) {
+        // If any students remain, distribute them to teams with fewest members
+        List<Student> remainingStudents = new ArrayList<>();
+        remainingStudents.addAll(sdetStudents);
+        remainingStudents.addAll(daStudents);
+        
+        for (Student student : remainingStudents) {
             // Find team with fewest members
-            Team targetTeam = teams.stream()
+            Team targetTeam = fullTeams.stream()
                     .min(Comparator.comparingInt(Team::getSize))
-                    .orElse(teams.get(0));
-            targetTeam.addMember(daStudents.get(i));
+                    .orElse(fullTeams.get(0));
+            targetTeam.addMember(student);
         }
         
         // Set statistics for each team
-        for (Team team : teams) {
+        for (Team team : advancedTeams) {
             if (!team.getMembers().isEmpty()) {
-                team.setStatistics(String.format("SDET: %d, DA: %d, Advanced: %d, Total: %d", 
-                    team.countByTrack("SDET"), 
-                    team.countByTrack("DA"),
-                    team.countAdvancedCourseParticipants(),
+                team.setStatistics(String.format("SDET: %d, DA: %d, Others: %d, Total: %d", 
+                    team.getSdetCount(), 
+                    team.getDaCount(),
+                    team.getSize() - team.getSdetCount() - team.getDaCount(),
+                    team.getSize()));
+            }
+        }
+        
+        for (Team team : fullTeams) {
+            if (!team.getMembers().isEmpty()) {
+                team.setStatistics(String.format("SDET: %d, DA: %d, Others: %d, Total: %d", 
+                    team.getSdetCount(), 
+                    team.getDaCount(),
+                    team.getSize() - team.getSdetCount() - team.getDaCount(),
                     team.getSize()));
             }
         }
         
         // Remove any empty teams
-        teams.removeIf(team -> team.getMembers().isEmpty());
+        advancedTeams.removeIf(team -> team.getMembers().isEmpty());
+        fullTeams.removeIf(team -> team.getMembers().isEmpty());
+        
+        // Combine all teams for return
+        teams.addAll(advancedTeams);
+        teams.addAll(fullTeams);
         
         return teams;
     }

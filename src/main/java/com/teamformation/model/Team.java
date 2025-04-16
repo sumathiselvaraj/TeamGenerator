@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,6 +34,14 @@ public class Team {
                 .count();
     }
     
+    public int getDaCount() {
+        return countByTrack("DA");
+    }
+    
+    public int getSdetCount() {
+        return countByTrack("SDET");
+    }
+    
     public int countByWorkingStatus(String status) {
         return (int) members.stream()
                 .filter(s -> status.equalsIgnoreCase(s.getWorkingStatus()))
@@ -58,8 +67,16 @@ public class Team {
     }
     
     public String getTrackDistribution() {
-        int sdetCount = countByTrack("SDET");
-        int daCount = countByTrack("DA");
+        int sdetCount = getSdetCount();
+        int daCount = getDaCount();
         return String.format("SDET: %d, DA: %d", sdetCount, daCount);
+    }
+    
+    // Get members sorted by track and name for better display
+    public List<Student> getSortedStudents() {
+        return members.stream()
+                .sorted(Comparator.comparing(Student::getTrack)
+                        .thenComparing(Student::getName))
+                .collect(Collectors.toList());
     }
 }
