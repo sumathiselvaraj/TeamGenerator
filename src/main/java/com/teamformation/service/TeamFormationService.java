@@ -262,9 +262,9 @@ public class TeamFormationService {
         
         System.out.println("Forming teams for " + eventType.getDisplayName() + " with " + students.size() + " students");
         
-        // Calculate the optimal number of teams based on team size (aiming for 7 students per team)
+        // Calculate the optimal number of teams based on team size (aiming for 5 students per team)
         int totalStudents = students.size();
-        int studentsPerTeam = 7; // Target size
+        int studentsPerTeam = 5; // Target size reduced to 5 per team as requested
         int numTeams = Math.max(totalStudents / studentsPerTeam, 1); // At least 1 team
         
         // Adjust number of teams to ensure more even distribution
@@ -923,9 +923,9 @@ public class TeamFormationService {
         
         System.out.println("Forming teams for " + eventType.getDisplayName() + " with " + students.size() + " students");
         
-        // Calculate the optimal number of teams based on team size (aiming for 7 students per team)
+        // Calculate the optimal number of teams based on team size (aiming for 5 students per team)
         int totalStudents = students.size();
-        int studentsPerTeam = 7; // Target size
+        int studentsPerTeam = 5; // Target size reduced to 5 per team as requested
         int numTeams = Math.max(totalStudents / studentsPerTeam, 1); // At least 1 team
         
         // Adjust number of teams to ensure more even distribution
