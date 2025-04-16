@@ -53,14 +53,22 @@ public class TeamFormationResult {
             return;
         }
         
-        // Better classification based on team names
-        advancedCourseTeams = teams.stream()
-                .filter(team -> team.getName().toLowerCase().contains("advanced"))
-                .collect(Collectors.toList());
+        // For SQL Bootcamp, split the teams in half for better display
+        // First half will be "Advanced Course Teams", second half will be "Full Course Teams"
+        int totalTeams = teams.size();
+        int midpoint = totalTeams / 2;
         
-        fullCourseTeams = teams.stream()
-                .filter(team -> team.getName().toLowerCase().contains("full"))
-                .collect(Collectors.toList());
+        // First half teams are "Advanced Course Teams"
+        advancedCourseTeams = new ArrayList<>();
+        for (int i = 0; i < midpoint; i++) {
+            advancedCourseTeams.add(teams.get(i));
+        }
+        
+        // Second half teams are "Full Course Teams"
+        fullCourseTeams = new ArrayList<>();
+        for (int i = midpoint; i < totalTeams; i++) {
+            fullCourseTeams.add(teams.get(i));
+        }
         
         // Calculate student counts
         advancedCourseStudentsCount = advancedCourseTeams.stream()
