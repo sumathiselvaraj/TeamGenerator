@@ -134,17 +134,63 @@ public class TeamFormationService {
      * @return The index of the team where the student should be placed
      */
     private int findBestTeamForStudent(List<Team> teams, Student student, int[] workingCount, int numTeams) {
-        // For SQL Bootcamp, we don't enforce batch diversity
-        if (student.getCourseType() != null && 
-            student.getCourseType().equalsIgnoreCase(EventType.SQL_BOOTCAMP.getDisplayName())) {
-            // Just find the team with the fewest working students
-            int targetTeam = 0;
-            for (int i = 1; i < numTeams; i++) {
-                if (workingCount[i] < workingCount[targetTeam]) {
-                    targetTeam = i;
+        // SQL Bootcamp - special handling for course types
+        // Since Student doesn't have an eventType field, we'll rely on courseType check directly
+        if (student.getCourseType() != null) {
+            // For SQL bootcamp, need to check course type
+            // If student is Advanced, they can only go in Advanced teams
+            // If student is Full Course, they can only go in Full Course teams
+            
+            if ("Advanced".equals(student.getCourseType())) {
+                // Advanced students must go to Advanced teams (names contain "Advanced")
+                int targetTeam = 0;
+                boolean foundAdvancedTeam = false;
+                
+                for (int i = 0; i < numTeams; i++) {
+                    if (teams.get(i).getName().contains("Advanced")) {
+                        if (!foundAdvancedTeam) {
+                            targetTeam = i;
+                            foundAdvancedTeam = true;
+                        } else if (workingCount[i] < workingCount[targetTeam]) {
+                            targetTeam = i;
+                        }
+                    }
                 }
+                
+                // If we found an Advanced team, return it
+                if (foundAdvancedTeam) {
+                    return targetTeam;
+                }
+                
+                // If we didn't find an Advanced team (shouldn't happen), use team 0
+                System.out.println("WARNING: No Advanced team found for Advanced student " + student.getName());
+                return 0;
+            } 
+            else {
+                // Full Course students must go to Full Course teams (names contain "Full Course")
+                int targetTeam = 0;
+                boolean foundFullCourseTeam = false;
+                
+                for (int i = 0; i < numTeams; i++) {
+                    if (teams.get(i).getName().contains("Full Course")) {
+                        if (!foundFullCourseTeam) {
+                            targetTeam = i;
+                            foundFullCourseTeam = true;
+                        } else if (workingCount[i] < workingCount[targetTeam]) {
+                            targetTeam = i;
+                        }
+                    }
+                }
+                
+                // If we found a Full Course team, return it
+                if (foundFullCourseTeam) {
+                    return targetTeam;
+                }
+                
+                // If we didn't find a Full Course team (shouldn't happen), use team 0
+                System.out.println("WARNING: No Full Course team found for Full Course student " + student.getName());
+                return 0;
             }
-            return targetTeam;
         }
         
         // For other events, consider batch diversity
@@ -310,7 +356,14 @@ public class TeamFormationService {
         int[] expCount = new int[numTeams]; // Count of experienced students per team
         
         // Assign advanced students to advanced teams first (teams 0 to advancedTeams-1)
+        System.out.println("Assigning " + advancedCourseStudents.size() + " Advanced students to " + advancedTeams + " Advanced teams");
         for (Student student : advancedCourseStudents) {
+            // Make sure the course type is correctly set
+            if (!"Advanced".equals(student.getCourseType())) {
+                student.setCourseType("Advanced");
+                System.out.println("Corrected course type for " + student.getName() + " to Advanced");
+            }
+            
             // Find the best team among advanced teams
             int targetTeam = 0;
             for (int i = 1; i < advancedTeams; i++) {
@@ -321,6 +374,7 @@ public class TeamFormationService {
             
             // Add student to the team
             teams.get(targetTeam).addMember(student);
+            System.out.println("Assigned Advanced student " + student.getName() + " to " + teams.get(targetTeam).getName());
         }
         
         // Now distribute full course students to the Full Course teams
@@ -334,41 +388,51 @@ public class TeamFormationService {
         
         System.out.println("Number of DVLPR students: " + dvlprStudents.size());
         
-        // For SQL Bootcamp, we need to distribute 1 DVLPR per team if possible
-        // For Advanced teams, start with index 0
+        // For SQL Bootcamp, we need to distribute DVLPR students
+        // But make sure:
+        // 1. Advanced DVLPR students go to Advanced teams
+        // 2. Full Course DVLPR students go to Full Course teams
+        
+        List<Student> advancedDvlprStudents = dvlprStudents.stream()
+                .filter(s -> "Advanced".equals(s.getCourseType()))
+                .collect(Collectors.toList());
+                
+        List<Student> fullCourseDvlprStudents = dvlprStudents.stream()
+                .filter(s -> !"Advanced".equals(s.getCourseType()))
+                .collect(Collectors.toList());
+                
+        System.out.println("Advanced DVLPR students: " + advancedDvlprStudents.size());
+        System.out.println("Full Course DVLPR students: " + fullCourseDvlprStudents.size());
+        
+        // Distribute Advanced DVLPR students to Advanced teams
         int teamIndex = 0;
-        for (int i = 0; i < Math.min(dvlprStudents.size(), advancedTeams); i++) {
-            // Only assign to advanced teams first
+        for (int i = 0; i < Math.min(advancedDvlprStudents.size(), advancedTeams); i++) {
+            // Only assign to advanced teams
             if (teamIndex < advancedTeams) {
-                teams.get(teamIndex).addMember(dvlprStudents.get(i));
+                teams.get(teamIndex).addMember(advancedDvlprStudents.get(i));
+                System.out.println("Assigned Advanced DVLPR student " + advancedDvlprStudents.get(i).getName() + 
+                                  " to " + teams.get(teamIndex).getName());
                 teamIndex++;
             }
         }
         
-        // For Full Course teams, start with the first full course team
-        teamIndex = advancedTeams;
-        for (int i = advancedTeams; i < Math.min(dvlprStudents.size(), numTeams); i++) {
-            // Now assign to full course teams
-            if (teamIndex < teams.size()) {
-                teams.get(teamIndex).addMember(dvlprStudents.get(i));
-                teamIndex++;
-            }
-        }
-        
-        // If more DVLPRs than teams, distribute the rest
-        if (dvlprStudents.size() > numTeams) {
-            List<Student> remainingDvlprs = dvlprStudents.subList(numTeams, dvlprStudents.size());
-            for (Student student : remainingDvlprs) {
-                // Find the team with the fewest members
-                int targetTeam = 0;
-                for (int i = 1; i < numTeams; i++) {
-                    if (teams.get(i).getSize() < teams.get(targetTeam).getSize()) {
-                        targetTeam = i;
-                    }
+        // Distribute remaining Full Course DVLPR students to Full Course teams
+        teamIndex = advancedTeams; // Start with the first full course team
+        for (Student student : fullCourseDvlprStudents) {
+            // Find the best team among full course teams
+            int targetTeam = advancedTeams;
+            for (int i = advancedTeams + 1; i < numTeams; i++) {
+                if (teams.get(i).getSize() < teams.get(targetTeam).getSize()) {
+                    targetTeam = i;
                 }
-                teams.get(targetTeam).addMember(student);
             }
+            
+            teams.get(targetTeam).addMember(student);
+            System.out.println("Assigned Full Course DVLPR student " + student.getName() + 
+                              " to " + teams.get(targetTeam).getName());
         }
+        
+        // We don't need this code anymore since we've correctly handled both Advanced and Full Course DVLPR students above
         
         // Distribute remaining full course students
         // Focus on filling the Full Course teams (teams advancedTeams to numTeams-1)
