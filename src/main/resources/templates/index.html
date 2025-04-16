@@ -19,8 +19,12 @@
                 <div class="info-section p-3 mb-4 rounded">
                     <h5><i data-feather="info" class="me-2"></i> Instructions</h5>
                     
+                    <div id="default-instructions" class="mb-3">
+                        <p>Please select an event type to see specific instructions.</p>
+                    </div>
+                    
                     <!-- SQL Bootcamp instructions -->
-                    <div class="mb-3 border-bottom pb-3">
+                    <div id="SQL_BOOTCAMP-instructions" class="event-instructions mb-3 border-bottom pb-3" style="display:none;">
                         <h6 class="text-primary"><i data-feather="database" class="me-1"></i> SQL Bootcamp</h6>
                         <ol>
                             <li>Upload an Excel file with student data in the following format:
@@ -42,9 +46,35 @@
                         </ol>
                     </div>
                     
-                    <!-- Gherkin/Selenium Hackathon instructions -->
-                    <div>
-                        <h6 class="text-success"><i data-feather="code" class="me-1"></i> Phase 1 Gherkin & Phase 2 Selenium Hackathon</h6>
+                    <!-- Gherkin Hackathon instructions -->
+                    <div id="PHASE1_GHERKIN-instructions" class="event-instructions" style="display:none;">
+                        <h6 class="text-success"><i data-feather="code" class="me-1"></i> Phase 1 Gherkin Hackathon</h6>
+                        <ol>
+                            <li>Upload an Excel file with student data in the following format:
+                                <ul>
+                                    <li>Timestamp</li>
+                                    <li>Email Address</li>
+                                    <li>Full Name</li>
+                                    <li>Track with Batch No</li>
+                                    <li>Are you working?</li>
+                                    <li>Time Zone</li>
+                                    <li>Have you completed DSAlgo Project</li>
+                                    <li>Have you participated in previous hackathon</li>
+                                </ul>
+                            </li>
+                            <li>The application will create teams with these rules:
+                                <ul>
+                                    <li>Students with previous hackathon experience are distributed evenly across teams</li>
+                                    <li>Working students are evenly distributed across teams</li>
+                                    <li>Teams are formed considering time zone compatibility (EST with CST, CST with PST)</li>
+                                </ul>
+                            </li>
+                        </ol>
+                    </div>
+                    
+                    <!-- Selenium Hackathon instructions -->
+                    <div id="PHASE2_SELENIUM-instructions" class="event-instructions" style="display:none;">
+                        <h6 class="text-success"><i data-feather="code" class="me-1"></i> Phase 2 Selenium Hackathon</h6>
                         <ol>
                             <li>Upload an Excel file with student data in the following format:
                                 <ul>
@@ -65,6 +95,33 @@
                                     <li>Teams are formed considering time zone compatibility (EST with CST, CST with PST)</li>
                                 </ul>
                             </li>
+                        </ol>
+                    </div>
+                    
+                    <!-- API Hackathon instructions -->
+                    <div id="PHASE1_API-instructions" class="event-instructions" style="display:none;">
+                        <h6 class="text-info"><i data-feather="server" class="me-1"></i> Phase 1 API Hackathon</h6>
+                        <ol>
+                            <li>Upload an Excel file with student data in the required format</li>
+                            <li>The application will create balanced teams based on time zone and experience</li>
+                        </ol>
+                    </div>
+                    
+                    <!-- Phase 2 API Hackathon instructions -->
+                    <div id="PHASE2_API-instructions" class="event-instructions" style="display:none;">
+                        <h6 class="text-info"><i data-feather="server" class="me-1"></i> Phase 2 API Hackathon</h6>
+                        <ol>
+                            <li>Upload an Excel file with student data in the required format</li>
+                            <li>The application will create balanced teams based on time zone and experience</li>
+                        </ol>
+                    </div>
+                    
+                    <!-- Recipe Scraping Hackathon instructions -->
+                    <div id="RECIPE_SCRAPING-instructions" class="event-instructions" style="display:none;">
+                        <h6 class="text-warning"><i data-feather="package" class="me-1"></i> Recipe Scraping Hackathon</h6>
+                        <ol>
+                            <li>Upload an Excel file with student data in the required format</li>
+                            <li>The application will create balanced teams based on time zone and experience</li>
                         </ol>
                     </div>
                 </div>
@@ -109,7 +166,7 @@
                 <div class="mt-5">
                     <h5>File Format Example</h5>
                     <div class="table-responsive">
-                        <table class="table table-bordered">
+                        <table id="file-format-example" class="table table-bordered">
                             <thead>
                                 <tr>
                                     <th>Timestamp</th>
@@ -122,7 +179,7 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>2023-07-01 10:30:15</td>
+                                    <td>2025-04-01 10:30:15</td>
                                     <td>john.doe@example.com</td>
                                     <td>John Doe</td>
                                     <td>SDET</td>
@@ -130,7 +187,7 @@
                                     <td>Full course topics</td>
                                 </tr>
                                 <tr>
-                                    <td>2023-07-01 11:15:20</td>
+                                    <td>2025-04-01 11:15:20</td>
                                     <td>jane.smith@example.com</td>
                                     <td>Jane Smith</td>
                                     <td>DA</td>
