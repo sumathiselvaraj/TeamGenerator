@@ -53,21 +53,30 @@ public class TeamFormationResult {
             return;
         }
         
-        // For SQL Bootcamp, split the teams in half for better display
-        // First half will be "Advanced Course Teams", second half will be "Full Course Teams"
-        int totalTeams = teams.size();
-        int midpoint = totalTeams / 2;
+        // Classify teams based on their name
+        advancedCourseTeams = teams.stream()
+                .filter(team -> team.getName().contains("Advanced"))
+                .collect(Collectors.toList());
         
-        // First half teams are "Advanced Course Teams"
-        advancedCourseTeams = new ArrayList<>();
-        for (int i = 0; i < midpoint; i++) {
-            advancedCourseTeams.add(teams.get(i));
-        }
+        fullCourseTeams = teams.stream()
+                .filter(team -> team.getName().contains("Full Course"))
+                .collect(Collectors.toList());
         
-        // Second half teams are "Full Course Teams"
-        fullCourseTeams = new ArrayList<>();
-        for (int i = midpoint; i < totalTeams; i++) {
-            fullCourseTeams.add(teams.get(i));
+        // If no teams were classified, do a backup classification based on student course types
+        if (advancedCourseTeams.isEmpty() && fullCourseTeams.isEmpty()) {
+            // For SQL Bootcamp, if team naming doesn't work, separate based on course type counts
+            for (Team team : teams) {
+                // Count advanced and full course students in this team
+                int advancedCount = team.countAdvancedCourseParticipants();
+                int fullCount = team.countFullCourseParticipants();
+                
+                // Add to appropriate list based on majority
+                if (advancedCount > fullCount) {
+                    advancedCourseTeams.add(team);
+                } else {
+                    fullCourseTeams.add(team);
+                }
+            }
         }
         
         // Calculate student counts

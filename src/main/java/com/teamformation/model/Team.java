@@ -91,17 +91,31 @@ public class Team {
     }
     
     public int countAdvancedCourseParticipants() {
-        return (int) members.stream()
-                .filter(s -> s.getCourseType() != null && 
-                        s.getCourseType().toLowerCase().contains("advanced"))
-                .count();
+        int count = 0;
+        for (Student student : members) {
+            String courseType = student.getCourseType();
+            if (courseType != null && courseType.toLowerCase().contains("advanced")) {
+                count++;
+                // For debugging
+                System.out.println("Advanced student in team " + name + ": " + student.getName() + " - " + courseType);
+            }
+        }
+        return count;
     }
     
     public int countFullCourseParticipants() {
-        return (int) members.stream()
-                .filter(s -> s.getCourseType() != null && 
-                        s.getCourseType().toLowerCase().contains("full"))
-                .count();
+        int count = 0;
+        for (Student student : members) {
+            String courseType = student.getCourseType();
+            if (courseType != null && 
+                    (courseType.toLowerCase().contains("full") || 
+                     courseType.equalsIgnoreCase("Full Course"))) {
+                count++;
+                // For debugging
+                System.out.println("Full Course student in team " + name + ": " + student.getName() + " - " + courseType);
+            }
+        }
+        return count;
     }
     
     public List<String> getMemberNames() {
