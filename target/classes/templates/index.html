@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automated Team Formation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card mt-4 main-card">
+            <div class="card-header text-center text-white bg-primary">
+                <h1>Automated Team Formation</h1>
+            </div>
+            <div class="card-body">
+                <!-- Info section -->
+                <div class="info-section p-3 mb-4 rounded">
+                    <h5><i data-feather="info" class="me-2"></i> Instructions</h5>
+                    <ol>
+                        <li>Upload an Excel file with student data in the following format:
+                            <ul>
+                                <li>Timestamp</li>
+                                <li>Email Address</li>
+                                <li>Full Name</li>
+                                <li>Track (SDET/DA)</li>
+                                <li>Batch No</li>
+                                <li>Course Type (Advanced/Full)</li>
+                            </ul>
+                        </li>
+                        <li>The application will create teams based on course type and track:
+                            <ul>
+                                <li>Advanced course students are divided equally in 7-member teams</li>
+                                <li>Full course students are formed in 7-member teams with balanced DA/SDET distribution</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </div>
+                
+                <!-- Error message display -->
+                <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
+                    <i data-feather="alert-triangle" class="me-2"></i>
+                    <span th:text="${errorMessage}"></span>
+                </div>
+                
+                <!-- File upload form -->
+                <form method="POST" action="/upload" enctype="multipart/form-data">
+                    <!-- Event type selection -->
+                    <div class="mb-3">
+                        <label for="eventType" class="form-label">Event Type</label>
+                        <select class="form-select" id="eventType" name="eventType" required>
+                            <option value="" selected disabled>Select an event type</option>
+                            <option th:each="type : ${eventTypes}" 
+                                    th:value="${type}" 
+                                    th:text="${type.displayName}">
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <!-- File input -->
+                    <label class="form-label">Select Excel File</label>
+                    <div class="input-group mb-3">
+                        <input type="file" class="form-control" id="file" name="file" required>
+                        <label class="input-group-text" for="file">Choose</label>
+                    </div>
+                    <div class="form-text mb-3">Only Excel files (.xlsx, .xls) are allowed.</div>
+                    
+                    <!-- Submit button -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i data-feather="users" class="me-2"></i> Generate Teams
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- File format example -->
+                <div class="mt-5">
+                    <h5>File Format Example</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Email Address</th>
+                                    <th>Full Name</th>
+                                    <th>Track</th>
+                                    <th>Batch No</th>
+                                    <th>Course Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2023-07-01 10:30:15</td>
+                                    <td>john.doe@example.com</td>
+                                    <td>John Doe</td>
+                                    <td>SDET</td>
+                                    <td>31</td>
+                                    <td>Full course topics</td>
+                                </tr>
+                                <tr>
+                                    <td>2023-07-01 11:15:20</td>
+                                    <td>jane.smith@example.com</td>
+                                    <td>Jane Smith</td>
+                                    <td>DA</td>
+                                    <td>31</td>
+                                    <td>only Advanced topics</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer text-center">
+                &copy; 2023 Team Formation Application
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="/js/script.js"></script>
+</body>
+</html>
