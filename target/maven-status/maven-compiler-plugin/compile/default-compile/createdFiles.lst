@@ -3,7 +3,6 @@ com/teamformation/TeamFormationApplication.class
 com/teamformation/util/ExcelGenerator.class
 com/teamformation/service/TeamFormationService.class
 com/teamformation/model/Team$TeamBuilder.class
-com/teamformation/service/TeamFormationService$1.class
 com/teamformation/service/ExcelService$1.class
 com/teamformation/model/TeamFormationResult.class
 com/teamformation/controller/TeamFormationController.class
