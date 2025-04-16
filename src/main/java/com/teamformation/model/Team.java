@@ -42,6 +42,10 @@ public class Team {
         return countByTrack("SDET");
     }
     
+    public int getDvlprCount() {
+        return countByTrack("DVLPR");
+    }
+    
     public int countByWorkingStatus(String status) {
         return (int) members.stream()
                 .filter(s -> status.equalsIgnoreCase(s.getWorkingStatus()))
@@ -69,7 +73,8 @@ public class Team {
     public String getTrackDistribution() {
         int sdetCount = getSdetCount();
         int daCount = getDaCount();
-        return String.format("SDET: %d, DA: %d", sdetCount, daCount);
+        int dvlprCount = getDvlprCount();
+        return String.format("SDET: %d, DA: %d, DVLPR: %d", sdetCount, daCount, dvlprCount);
     }
     
     // Get members sorted by track and name for better display

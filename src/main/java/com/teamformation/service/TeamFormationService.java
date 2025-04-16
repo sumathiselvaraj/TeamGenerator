@@ -136,18 +136,36 @@ public class TeamFormationService {
         
         // Split full course students by track
         List<Student> sdetStudents = fullStudents.stream()
-                .filter(s -> "SDET".equals(s.getTrack()))
+                .filter(s -> "SDET".equalsIgnoreCase(s.getTrack()))
                 .collect(Collectors.toList());
         
         List<Student> daStudents = fullStudents.stream()
-                .filter(s -> "DA".equals(s.getTrack()))
+                .filter(s -> "DA".equalsIgnoreCase(s.getTrack()))
                 .collect(Collectors.toList());
         
-        System.out.println("Full course: " + sdetStudents.size() + " SDET students and " + daStudents.size() + " DA students");
+        List<Student> dvlprStudents = fullStudents.stream()
+                .filter(s -> "DVLPR".equalsIgnoreCase(s.getTrack()))
+                .collect(Collectors.toList());
         
-        // Try to distribute SDET and DA students to balance each team's ratio
+        System.out.println("Full course: " + sdetStudents.size() + " SDET students, " + 
+                           daStudents.size() + " DA students, " + 
+                           dvlprStudents.size() + " DVLPR students");
+        
+        // Try to distribute SDET, DA and DVLPR students to balance each team's ratio
         Collections.shuffle(sdetStudents);
         Collections.shuffle(daStudents);
+        Collections.shuffle(dvlprStudents);
+        
+        // Try to ensure one DVLPR per team first
+        int dvlprPerTeam = Math.min(1, dvlprStudents.size() / fullTeamCount);
+        
+        // First, distribute one DVLPR to each team (if available)
+        for (int i = 0; i < fullTeamCount && !dvlprStudents.isEmpty(); i++) {
+            Team team = fullTeams.get(i);
+            if (dvlprPerTeam > 0) {
+                team.addMember(dvlprStudents.remove(0));
+            }
+        }
         
         // Basic strategy: try to assign equal numbers of each track to each team
         for (int i = 0; i < fullTeamCount; i++) {
@@ -181,6 +199,7 @@ public class TeamFormationService {
         List<Student> remainingStudents = new ArrayList<>();
         remainingStudents.addAll(sdetStudents);
         remainingStudents.addAll(daStudents);
+        remainingStudents.addAll(dvlprStudents);
         
         for (Student student : remainingStudents) {
             // Find team with fewest members
@@ -193,20 +212,28 @@ public class TeamFormationService {
         // Set statistics for each team
         for (Team team : advancedTeams) {
             if (!team.getMembers().isEmpty()) {
-                team.setStatistics(String.format("SDET: %d, DA: %d, Others: %d, Total: %d", 
+                int dvlprCount = (int) team.getMembers().stream()
+                        .filter(s -> "DVLPR".equalsIgnoreCase(s.getTrack()))
+                        .count();
+                
+                team.setStatistics(String.format("SDET: %d, DA: %d, DVLPR: %d, Total: %d", 
                     team.getSdetCount(), 
                     team.getDaCount(),
-                    team.getSize() - team.getSdetCount() - team.getDaCount(),
+                    dvlprCount,
                     team.getSize()));
             }
         }
         
         for (Team team : fullTeams) {
             if (!team.getMembers().isEmpty()) {
-                team.setStatistics(String.format("SDET: %d, DA: %d, Others: %d, Total: %d", 
+                int dvlprCount = (int) team.getMembers().stream()
+                        .filter(s -> "DVLPR".equalsIgnoreCase(s.getTrack()))
+                        .count();
+                
+                team.setStatistics(String.format("SDET: %d, DA: %d, DVLPR: %d, Total: %d", 
                     team.getSdetCount(), 
                     team.getDaCount(),
-                    team.getSize() - team.getSdetCount() - team.getDaCount(),
+                    dvlprCount,
                     team.getSize()));
             }
         }
