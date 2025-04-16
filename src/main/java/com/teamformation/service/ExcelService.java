@@ -215,7 +215,9 @@ public class ExcelService {
                         if (previousHackathonIdx >= 0) {
                             Cell previousHackathonCell = row.getCell(previousHackathonIdx);
                             if (previousHackathonCell != null) {
-                                student.setPreviousHackathon(getCellValueAsString(previousHackathonCell));
+                                String value = getCellValueAsString(previousHackathonCell);
+                                student.setPreviousHackathon(value);
+                                student.setPreviousHackathonParticipation(value); // Set the value to the new field as well
                             }
                         }
                         
@@ -289,7 +291,9 @@ public class ExcelService {
                         if (previousApiHackathonIdx >= 0) {
                             Cell previousApiHackathonCell = row.getCell(previousApiHackathonIdx);
                             if (previousApiHackathonCell != null) {
-                                student.setPreviousHackathon(getCellValueAsString(previousApiHackathonCell));
+                                String value = getCellValueAsString(previousApiHackathonCell);
+                                student.setPreviousHackathon(value);
+                                student.setPreviousHackathonParticipation(value); // Set the value to the new field as well
                             }
                         }
                         
@@ -349,7 +353,9 @@ public class ExcelService {
                         if (previousHackathonIdx >= 0) {
                             Cell previousHackathonCell = row.getCell(previousHackathonIdx);
                             if (previousHackathonCell != null) {
-                                student.setPreviousHackathon(getCellValueAsString(previousHackathonCell));
+                                String value = getCellValueAsString(previousHackathonCell);
+                                student.setPreviousHackathon(value);
+                                student.setPreviousHackathonParticipation(value); // Set the value to the new field as well
                             }
                         }
                         
