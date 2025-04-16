@@ -52,6 +52,21 @@ public class Team {
                 .count();
     }
     
+    /**
+     * Checks if the team already has a student from the specified batch number
+     * @param batchNumber Batch number to check 
+     * @return true if any student in the team has this batch number
+     */
+    public boolean hasBatchNumber(String batchNumber) {
+        if (batchNumber == null || batchNumber.trim().isEmpty()) {
+            return false;
+        }
+        
+        return members.stream()
+                .filter(s -> s.getBatch() != null)
+                .anyMatch(s -> s.getBatch().equalsIgnoreCase(batchNumber.trim()));
+    }
+    
     public int countAdvancedCourseParticipants() {
         return (int) members.stream()
                 .filter(s -> s.getCourseType() != null && 

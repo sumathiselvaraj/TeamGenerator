@@ -172,6 +172,42 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td>Yes</td>
                     </tr>
                 </tbody>`;
+        } else if (eventType === 'RECIPE_SCRAPING_HACKATHON') {
+            tableExample.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Email Address</th>
+                        <th>Full Name</th>
+                        <th>Track with Batch No</th>
+                        <th>Are you working?</th>
+                        <th>Time Zone</th>
+                        <th>Completed DSAlgo?</th>
+                        <th>Previous scraping hackathon?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>2025-04-01 10:30:15</td>
+                        <td>john.doe@example.com</td>
+                        <td>John Doe</td>
+                        <td>SDET B31</td>
+                        <td>Yes</td>
+                        <td>EST</td>
+                        <td>Yes</td>
+                        <td>No</td>
+                    </tr>
+                    <tr>
+                        <td>2025-04-01 11:15:20</td>
+                        <td>jane.smith@example.com</td>
+                        <td>Jane Smith</td>
+                        <td>DA B32</td>
+                        <td>No</td>
+                        <td>PST</td>
+                        <td>Yes</td>
+                        <td>Yes</td>
+                    </tr>
+                </tbody>`;
         } else {
             // Default example
             tableExample.innerHTML = `

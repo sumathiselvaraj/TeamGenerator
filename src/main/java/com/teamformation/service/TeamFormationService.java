@@ -661,6 +661,65 @@ public class TeamFormationService {
         return false;
     }
     
+    /**
+     * Find the best team for a student considering working status count and batch diversity.
+     * For SQL Bootcamp, we don't enforce batch diversity.
+     * For all other events, we try to avoid placing students from the same batch on the same team.
+     * 
+     * @param teams List of teams
+     * @param student Student to place
+     * @param workingCount Array with count of working students per team
+     * @param numTeams Number of teams
+     * @return Index of the best team for this student
+     */
+    private int findBestTeamForStudent(List<Team> teams, Student student, int[] workingCount, int numTeams) {
+        // For SQL Bootcamp, we don't enforce batch diversity
+        if (student.getCourseType() != null && 
+            student.getCourseType().equalsIgnoreCase(EventType.SQL_BOOTCAMP.getDisplayName())) {
+            // Just find the team with the fewest working students
+            int targetTeam = 0;
+            for (int i = 1; i < numTeams; i++) {
+                if (workingCount[i] < workingCount[targetTeam]) {
+                    targetTeam = i;
+                }
+            }
+            return targetTeam;
+        }
+        
+        // For other events, consider batch diversity
+        String studentBatch = student.getBatch();
+        
+        // First, try to find teams that don't have this batch
+        List<Integer> teamsWithoutBatch = new ArrayList<>();
+        for (int i = 0; i < numTeams; i++) {
+            Team team = teams.get(i);
+            if (!team.hasBatchNumber(studentBatch)) {
+                teamsWithoutBatch.add(i);
+            }
+        }
+        
+        // If we found teams without this batch, find the one with the fewest working students
+        if (!teamsWithoutBatch.isEmpty()) {
+            int targetTeam = teamsWithoutBatch.get(0);
+            for (int i = 1; i < teamsWithoutBatch.size(); i++) {
+                int teamIdx = teamsWithoutBatch.get(i);
+                if (workingCount[teamIdx] < workingCount[targetTeam]) {
+                    targetTeam = teamIdx;
+                }
+            }
+            return targetTeam;
+        }
+        
+        // If all teams have this batch already, just find the team with the fewest working students
+        int targetTeam = 0;
+        for (int i = 1; i < numTeams; i++) {
+            if (workingCount[i] < workingCount[targetTeam]) {
+                targetTeam = i;
+            }
+        }
+        return targetTeam;
+    }
+    
     private String normalizeTimeZone(String timeZone) {
         if (timeZone == null) {
             return "OTHER";
