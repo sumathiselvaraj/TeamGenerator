@@ -334,7 +334,18 @@ public class TeamFormationService {
             expCount[targetTeam]++;
         }
         
-        // STEP 2: Distribute working students evenly across teams
+        // STEP 2: Count ALL working students (including those already assigned in step 1)
+        // First, count working students already assigned in step 1
+        int[] workingCount = new int[numTeams];
+        for (int i = 0; i < numTeams; i++) {
+            Team team = teams.get(i);
+            workingCount[i] = (int) team.getMembers().stream()
+                .filter(s -> s.getWorkingStatus() != null && 
+                        s.getWorkingStatus().toLowerCase().contains("yes"))
+                .count();
+        }
+        
+        // Get working students not yet assigned
         List<Student> workingStudents = students.stream()
                 .filter(s -> s.getWorkingStatus() != null && 
                         s.getWorkingStatus().toLowerCase().contains("yes"))
@@ -342,12 +353,13 @@ public class TeamFormationService {
                 .collect(Collectors.toList());
         
         System.out.println("Found " + workingStudents.size() + " working students not yet assigned");
+        System.out.println("Current working students per team:");
+        for (int i = 0; i < numTeams; i++) {
+            System.out.println("Team " + (i+1) + ": " + workingCount[i] + " working students");
+        }
         
         // Randomize working students to ensure fair distribution
         Collections.shuffle(workingStudents);
-        
-        // Initialize a counter for each team's working students
-        int[] workingCount = new int[numTeams];
         
         // Distribute working students evenly across teams
         for (Student student : workingStudents) {
@@ -362,6 +374,11 @@ public class TeamFormationService {
             // Add the student to the team
             teams.get(targetTeam).addMember(student);
             workingCount[targetTeam]++;
+        }
+        
+        System.out.println("After distribution, working students per team:");
+        for (int i = 0; i < numTeams; i++) {
+            System.out.println("Team " + (i+1) + ": " + workingCount[i] + " working students");
         }
         
         // STEP 3: Create temporary time zone groupings for remaining students

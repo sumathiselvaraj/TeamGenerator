@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td>only Advanced topics</td>
                     </tr>
                 </tbody>`;
-        } else if (eventType === 'PHASE1_GHERKIN' || eventType === 'PHASE2_SELENIUM') {
+        } else if (eventType === 'SELENIUM_HACKATHON') {
             tableExample.innerHTML = `
                 <thead>
                     <tr>
