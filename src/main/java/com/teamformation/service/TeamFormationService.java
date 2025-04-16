@@ -252,6 +252,8 @@ public class TeamFormationService {
     private List<Team> formHackathonTeams(List<Student> students, EventType eventType) {
         List<Team> teams = new ArrayList<>();
         
+        System.out.println("Forming teams for " + eventType.getDisplayName() + " with " + students.size() + " students");
+        
         // Calculate number of teams needed for all students
         int totalStudents = students.size();
         int numTeams = (totalStudents + TEAM_SIZE - 1) / TEAM_SIZE; // Ceiling division
@@ -274,44 +276,87 @@ public class TeamFormationService {
             studentsByTimeZone.computeIfAbsent(timeZone, k -> new ArrayList<>()).add(student);
         }
         
+        // Count students by timezone
+        studentsByTimeZone.forEach((tz, list) -> 
+                System.out.println("Time zone " + tz + ": " + list.size() + " students"));
+        
         // List of main time zone groups (in order of compatibility)
         List<String> timeZoneGroups = Arrays.asList("EST", "CST", "PST", "OTHER");
         
-        // First, distribute students with previous hackathon experience evenly
+        // Rule 1: First, distribute students with previous hackathon experience evenly
         List<Student> withPreviousHackathon = students.stream()
                 .filter(s -> s.getPreviousHackathon() != null && 
                             s.getPreviousHackathon().toLowerCase().contains("yes"))
                 .collect(Collectors.toList());
         
+        System.out.println("Found " + withPreviousHackathon.size() + " students with previous hackathon experience");
+        
+        // Randomize to avoid bias in distribution
         Collections.shuffle(withPreviousHackathon);
         
+        // Assign experienced students to teams (one per team as evenly as possible)
         for (int i = 0; i < withPreviousHackathon.size(); i++) {
             teams.get(i % numTeams).addMember(withPreviousHackathon.get(i));
         }
         
-        // Then, distribute working students evenly among teams
+        // Rule 2: Then, distribute working students evenly among teams
         List<Student> workingStudents = students.stream()
                 .filter(s -> s.getWorkingStatus() != null && 
                         s.getWorkingStatus().toLowerCase().contains("yes"))
                 .filter(s -> !hasStudentBeenAssigned(s, teams)) // Skip if already assigned
                 .collect(Collectors.toList());
         
+        System.out.println("Found " + workingStudents.size() + " working students not yet assigned");
+        
+        // Randomize working students
         Collections.shuffle(workingStudents);
         
+        // Assign working students, distributing evenly across teams
         for (int i = 0; i < workingStudents.size(); i++) {
             teams.get(i % numTeams).addMember(workingStudents.get(i));
         }
         
-        // Finally, distribute remaining students by time zone compatibility
+        // Rule 3: Try to group students by compatible time zones
+        // First, try to assign students to teams with their exact time zone
         for (String timeZone : timeZoneGroups) {
             if (studentsByTimeZone.containsKey(timeZone)) {
-                List<Student> timeZoneStudents = studentsByTimeZone.get(timeZone).stream()
+                // Get students from this time zone who haven't been assigned yet
+                List<Student> unassignedInTimeZone = studentsByTimeZone.get(timeZone).stream()
                         .filter(s -> !hasStudentBeenAssigned(s, teams))
                         .collect(Collectors.toList());
                 
-                // Process students from this time zone
-                if (!timeZoneStudents.isEmpty()) {
-                    distributeStudentsByTimeZone(timeZoneStudents, teams);
+                if (!unassignedInTimeZone.isEmpty()) {
+                    System.out.println("Assigning " + unassignedInTimeZone.size() + " students from " + timeZone + " time zone");
+                    
+                    // Group teams by dominant time zone
+                    Map<String, List<Team>> teamsByTimeZone = getTeamsByDominantTimeZone(teams);
+                    
+                    // Try to assign students to teams with matching time zone first
+                    if (teamsByTimeZone.containsKey(timeZone)) {
+                        assignStudentsToMatchingTeams(unassignedInTimeZone, teamsByTimeZone.get(timeZone));
+                    }
+                    
+                    // For remaining students, use compatible time zones
+                    List<Student> remainingStudents = unassignedInTimeZone.stream()
+                            .filter(s -> !hasStudentBeenAssigned(s, teams))
+                            .collect(Collectors.toList());
+                    
+                    if (!remainingStudents.isEmpty()) {
+                        // Get compatible time zones
+                        List<String> compatibleTimeZones = getCompatibleTimeZones(timeZone);
+                        
+                        // Try to assign to compatible time zone teams
+                        for (String compatibleTz : compatibleTimeZones) {
+                            if (teamsByTimeZone.containsKey(compatibleTz)) {
+                                assignStudentsToMatchingTeams(remainingStudents, teamsByTimeZone.get(compatibleTz));
+                            }
+                            
+                            // Break if all students assigned
+                            if (remainingStudents.stream().allMatch(s -> hasStudentBeenAssigned(s, teams))) {
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -320,6 +365,8 @@ public class TeamFormationService {
         List<Student> remainingStudents = students.stream()
                 .filter(s -> !hasStudentBeenAssigned(s, teams))
                 .collect(Collectors.toList());
+        
+        System.out.println("Final assignment: " + remainingStudents.size() + " students still need assignment");
         
         for (Student student : remainingStudents) {
             // Find team with fewest members
@@ -352,9 +399,10 @@ public class TeamFormationService {
                 timeZoneCounts.forEach((tz, count) -> 
                         timeZoneStats.append(tz).append(": ").append(count).append(", "));
                 
-                team.setStatistics(String.format("SDET: %d, DA: %d, Working: %d, Previous Hackathon: %d, TimeZones: %s Total: %d", 
+                team.setStatistics(String.format("SDET: %d, DA: %d, DVLPR: %d, Working: %d, Previous Hackathon: %d, TimeZones: %s Total: %d", 
                     team.countByTrack("SDET"), 
                     team.countByTrack("DA"),
+                    team.countByTrack("DVLPR"),
                     workingCount,
                     withPreviousHackathonCount,
                     timeZoneStats.length() > 0 ? timeZoneStats.substring(0, timeZoneStats.length() - 2) : "None",
@@ -366,6 +414,80 @@ public class TeamFormationService {
         teams.removeIf(team -> team.getMembers().isEmpty());
         
         return teams;
+    }
+    
+    // Helper method to get compatible time zones
+    private List<String> getCompatibleTimeZones(String timeZone) {
+        switch (timeZone) {
+            case "EST":
+                return Collections.singletonList("CST");
+            case "CST":
+                return Arrays.asList("EST", "PST");
+            case "PST":
+                return Collections.singletonList("CST");
+            default:
+                return Arrays.asList("EST", "CST", "PST");
+        }
+    }
+    
+    // Helper method to assign students to teams with matching time zone
+    private void assignStudentsToMatchingTeams(List<Student> students, List<Team> matchingTeams) {
+        // Sort teams by size (smallest first)
+        List<Team> sortedTeams = new ArrayList<>(matchingTeams);
+        Collections.sort(sortedTeams, Comparator.comparingInt(Team::getSize));
+        
+        // Assign students to teams with matching time zone, starting with smallest teams
+        for (Student student : new ArrayList<>(students)) {
+            if (hasStudentBeenAssigned(student, sortedTeams)) {
+                continue;
+            }
+            
+            // Find the smallest team
+            Team targetTeam = sortedTeams.stream()
+                    .min(Comparator.comparingInt(Team::getSize))
+                    .orElse(null);
+            
+            if (targetTeam != null) {
+                targetTeam.addMember(student);
+                students.remove(student);
+            }
+        }
+    }
+    
+    // Helper method to group teams by dominant time zone
+    private Map<String, List<Team>> getTeamsByDominantTimeZone(List<Team> teams) {
+        Map<String, List<Team>> teamsByTimeZone = new HashMap<>();
+        
+        for (Team team : teams) {
+            // Find dominant time zone
+            Map<String, Long> timeZoneCounts = team.getMembers().stream()
+                    .filter(s -> s.getTimeZone() != null)
+                    .collect(Collectors.groupingBy(
+                            s -> normalizeTimeZone(s.getTimeZone()),
+                            Collectors.counting()));
+            
+            String dominantTimeZone = "NONE";
+            long maxCount = 0;
+            
+            for (Map.Entry<String, Long> entry : timeZoneCounts.entrySet()) {
+                if (entry.getValue() > maxCount) {
+                    maxCount = entry.getValue();
+                    dominantTimeZone = entry.getKey();
+                }
+            }
+            
+            // Add team to the map under its dominant time zone
+            teamsByTimeZone.computeIfAbsent(dominantTimeZone, k -> new ArrayList<>()).add(team);
+        }
+        
+        // Add teams with no members yet to the NONE category
+        for (Team team : teams) {
+            if (team.getMembers().isEmpty()) {
+                teamsByTimeZone.computeIfAbsent("NONE", k -> new ArrayList<>()).add(team);
+            }
+        }
+        
+        return teamsByTimeZone;
     }
     
     private boolean hasStudentBeenAssigned(Student student, List<Team> teams) {
