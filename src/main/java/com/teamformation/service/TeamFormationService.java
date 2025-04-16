@@ -624,8 +624,12 @@ public class TeamFormationService {
         int numStudents = students.size();
         System.out.println("Forming Selenium Hackathon teams with " + numStudents + " students");
         
-        // Calculate number of teams needed (5 members per team for Selenium Hackathon)
+        // Ensure we have at least numStudents/5 teams (ceiling) to enforce max 5 students per team
         int numTeams = (int) Math.ceil((double) numStudents / HACKATHON_TEAM_SIZE);
+        // Make sure we have at least 2 teams if we have more than 5 students
+        if (numStudents > HACKATHON_TEAM_SIZE) {
+            numTeams = Math.max(numTeams, 2);
+        }
         System.out.println("Initial number of teams: " + numTeams);
         
         // Initialize teams
