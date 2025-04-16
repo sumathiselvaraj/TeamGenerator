@@ -59,6 +59,23 @@ public class Team {
     }
     
     /**
+     * Checks if the team already has a student from the specified batch number with the same track
+     * @param batchNumber Batch number to check 
+     * @param track The track to check for this batch
+     * @return true if any student in the team has this batch number and track
+     */
+    public boolean hasBatchNumberWithTrack(String batchNumber, String track) {
+        if (batchNumber == null || batchNumber.trim().isEmpty() || track == null) {
+            return false;
+        }
+        
+        return members.stream()
+                .filter(s -> s.getBatch() != null && s.getTrack() != null)
+                .anyMatch(s -> s.getBatch().equalsIgnoreCase(batchNumber.trim()) && 
+                         s.getTrack().equalsIgnoreCase(track.trim()));
+    }
+    
+    /**
      * Checks if the team already has a student from the specified batch number
      * @param batchNumber Batch number to check 
      * @return true if any student in the team has this batch number

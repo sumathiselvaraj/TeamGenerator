@@ -134,33 +134,54 @@ public class TeamFormationService {
         
         // For other events, consider batch diversity
         String studentBatch = student.getBatch();
+        String studentTrack = student.getTrack();
         
-        // First, try to find teams that don't have this batch
-        List<Integer> teamsWithoutBatch = new ArrayList<>();
+        // First, prioritize team size balancing - find teams with fewer members
+        List<Integer> smallestTeams = new ArrayList<>();
+        int minSize = Integer.MAX_VALUE;
+        
         for (int i = 0; i < numTeams; i++) {
-            Team team = teams.get(i);
-            if (!team.hasBatchNumber(studentBatch)) {
-                teamsWithoutBatch.add(i);
+            int teamSize = teams.get(i).getSize();
+            if (teamSize < minSize) {
+                smallestTeams.clear();
+                smallestTeams.add(i);
+                minSize = teamSize;
+            } else if (teamSize == minSize) {
+                smallestTeams.add(i);
             }
         }
         
-        // If we found teams without this batch, find the one with the fewest working students
-        if (!teamsWithoutBatch.isEmpty()) {
-            int targetTeam = teamsWithoutBatch.get(0);
-            for (int i = 1; i < teamsWithoutBatch.size(); i++) {
-                int teamIdx = teamsWithoutBatch.get(i);
-                if (workingCount[teamIdx] < workingCount[targetTeam]) {
-                    targetTeam = teamIdx;
+        // If all teams are balanced in size, consider batch+track diversity
+        if (studentBatch != null && studentTrack != null) {
+            // First, among smallest teams, look for those without this batch+track combination
+            List<Integer> smallTeamsWithoutBatchTrack = new ArrayList<>();
+            for (int teamIdx : smallestTeams) {
+                Team team = teams.get(teamIdx);
+                if (!team.hasBatchNumberWithTrack(studentBatch, studentTrack)) {
+                    smallTeamsWithoutBatchTrack.add(teamIdx);
                 }
             }
-            return targetTeam;
+            
+            // If we found teams without this batch+track, find the one with the fewest working students
+            if (!smallTeamsWithoutBatchTrack.isEmpty()) {
+                int targetTeam = smallTeamsWithoutBatchTrack.get(0);
+                for (int i = 1; i < smallTeamsWithoutBatchTrack.size(); i++) {
+                    int teamIdx = smallTeamsWithoutBatchTrack.get(i);
+                    if (workingCount[teamIdx] < workingCount[targetTeam]) {
+                        targetTeam = teamIdx;
+                    }
+                }
+                return targetTeam;
+            }
         }
         
-        // If all teams have this batch already, just find the team with the fewest working students
-        int targetTeam = 0;
-        for (int i = 1; i < numTeams; i++) {
-            if (workingCount[i] < workingCount[targetTeam]) {
-                targetTeam = i;
+        // If we couldn't find teams without this batch+track or we don't have batch/track info,
+        // just pick the smallest team with fewest working students
+        int targetTeam = smallestTeams.get(0);
+        for (int i = 1; i < smallestTeams.size(); i++) {
+            int teamIdx = smallestTeams.get(i);
+            if (workingCount[teamIdx] < workingCount[targetTeam]) {
+                targetTeam = teamIdx;
             }
         }
         return targetTeam;
