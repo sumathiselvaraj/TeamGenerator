@@ -19,6 +19,7 @@ public class TeamFormationService {
         if (students == null || students.isEmpty()) {
             return TeamFormationResult.builder()
                     .teams(new ArrayList<>())
+                    .eventType(eventType)
                     .summary("No students provided")
                     .build();
         }
@@ -47,12 +48,14 @@ public class TeamFormationService {
             default:
                 return TeamFormationResult.builder()
                         .teams(new ArrayList<>())
+                        .eventType(eventType)
                         .summary("Unsupported event type: " + eventType)
                         .build();
         }
 
         return TeamFormationResult.builder()
                 .teams(teams)
+                .eventType(eventType)
                 .summary("Successfully formed " + teams.size() + " teams")
                 .build();
     }
