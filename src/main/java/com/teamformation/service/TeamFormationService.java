@@ -254,9 +254,26 @@ public class TeamFormationService {
         
         System.out.println("Forming teams for " + eventType.getDisplayName() + " with " + students.size() + " students");
         
-        // Calculate number of teams needed for all students
+        // Calculate the optimal number of teams based on team size (aiming for 7 students per team)
         int totalStudents = students.size();
-        int numTeams = (totalStudents + TEAM_SIZE - 1) / TEAM_SIZE; // Ceiling division
+        int studentsPerTeam = 7; // Target size
+        int numTeams = Math.max(totalStudents / studentsPerTeam, 1); // At least 1 team
+        
+        // Adjust number of teams to ensure more even distribution
+        // If we have remainder, see if we should add another team or stick with current number
+        if (totalStudents % studentsPerTeam > 0) {
+            // Calculate average team size with current number of teams vs adding one more team
+            double currentAvg = (double) totalStudents / numTeams;
+            double nextAvg = (double) totalStudents / (numTeams + 1);
+            
+            // If adding another team makes the distribution more even, do it
+            if (Math.abs(nextAvg - studentsPerTeam) < Math.abs(currentAvg - studentsPerTeam)) {
+                numTeams++;
+            }
+        }
+        
+        System.out.println("Creating " + numTeams + " teams with approximately " + 
+                           (totalStudents / numTeams) + " students per team");
         
         // Create teams
         for (int i = 0; i < numTeams; i++) {
@@ -283,23 +300,41 @@ public class TeamFormationService {
         // List of main time zone groups (in order of compatibility)
         List<String> timeZoneGroups = Arrays.asList("EST", "CST", "PST", "OTHER");
         
-        // Rule 1: First, distribute students with previous hackathon experience evenly
+        // STEP 1: First, distribute students with previous hackathon experience evenly
         List<Student> withPreviousHackathon = students.stream()
                 .filter(s -> s.getPreviousHackathon() != null && 
                             s.getPreviousHackathon().toLowerCase().contains("yes"))
                 .collect(Collectors.toList());
         
-        System.out.println("Found " + withPreviousHackathon.size() + " students with previous hackathon experience");
+        System.out.println("Found " + withPreviousHackathon.size() + 
+                          " students with previous hackathon experience");
         
-        // Randomize to avoid bias in distribution
+        // Randomize experienced students to ensure fair distribution
         Collections.shuffle(withPreviousHackathon);
         
-        // Assign experienced students to teams (one per team as evenly as possible)
-        for (int i = 0; i < withPreviousHackathon.size(); i++) {
-            teams.get(i % numTeams).addMember(withPreviousHackathon.get(i));
+        // Calculate how many experienced students should be in each team for even distribution
+        int expPerTeam = withPreviousHackathon.size() / numTeams;
+        int remainder = withPreviousHackathon.size() % numTeams;
+        
+        // Initialize a counter for each team's experienced students
+        int[] expCount = new int[numTeams];
+        
+        // Distribute experienced students evenly across teams
+        for (Student student : withPreviousHackathon) {
+            // Find the team with the fewest experienced students
+            int targetTeam = 0;
+            for (int i = 1; i < numTeams; i++) {
+                if (expCount[i] < expCount[targetTeam]) {
+                    targetTeam = i;
+                }
+            }
+            
+            // Add the student to the team
+            teams.get(targetTeam).addMember(student);
+            expCount[targetTeam]++;
         }
         
-        // Rule 2: Then, distribute working students evenly among teams
+        // STEP 2: Distribute working students evenly across teams
         List<Student> workingStudents = students.stream()
                 .filter(s -> s.getWorkingStatus() != null && 
                         s.getWorkingStatus().toLowerCase().contains("yes"))
@@ -308,78 +343,166 @@ public class TeamFormationService {
         
         System.out.println("Found " + workingStudents.size() + " working students not yet assigned");
         
-        // Randomize working students
+        // Randomize working students to ensure fair distribution
         Collections.shuffle(workingStudents);
         
-        // Assign working students, distributing evenly across teams
-        for (int i = 0; i < workingStudents.size(); i++) {
-            teams.get(i % numTeams).addMember(workingStudents.get(i));
+        // Initialize a counter for each team's working students
+        int[] workingCount = new int[numTeams];
+        
+        // Distribute working students evenly across teams
+        for (Student student : workingStudents) {
+            // Find the team with the fewest working students
+            int targetTeam = 0;
+            for (int i = 1; i < numTeams; i++) {
+                if (workingCount[i] < workingCount[targetTeam]) {
+                    targetTeam = i;
+                }
+            }
+            
+            // Add the student to the team
+            teams.get(targetTeam).addMember(student);
+            workingCount[targetTeam]++;
         }
         
-        // Rule 3: Try to group students by compatible time zones
-        // First, try to assign students to teams with their exact time zone
+        // STEP 3: Create temporary time zone groupings for remaining students
+        Map<String, List<Student>> remainingByTimeZone = new HashMap<>();
+        
+        // Get remaining unassigned students
         for (String timeZone : timeZoneGroups) {
             if (studentsByTimeZone.containsKey(timeZone)) {
-                // Get students from this time zone who haven't been assigned yet
-                List<Student> unassignedInTimeZone = studentsByTimeZone.get(timeZone).stream()
+                List<Student> unassigned = studentsByTimeZone.get(timeZone).stream()
                         .filter(s -> !hasStudentBeenAssigned(s, teams))
                         .collect(Collectors.toList());
                 
-                if (!unassignedInTimeZone.isEmpty()) {
-                    System.out.println("Assigning " + unassignedInTimeZone.size() + " students from " + timeZone + " time zone");
-                    
-                    // Group teams by dominant time zone
-                    Map<String, List<Team>> teamsByTimeZone = getTeamsByDominantTimeZone(teams);
-                    
-                    // Try to assign students to teams with matching time zone first
-                    if (teamsByTimeZone.containsKey(timeZone)) {
-                        assignStudentsToMatchingTeams(unassignedInTimeZone, teamsByTimeZone.get(timeZone));
+                if (!unassigned.isEmpty()) {
+                    remainingByTimeZone.put(timeZone, unassigned);
+                }
+            }
+        }
+        
+        // Calculate how many students each team should have for balanced distribution
+        int targetSize = totalStudents / numTeams;
+        int[] remainingSpots = new int[numTeams];
+        
+        // Calculate remaining spots in each team
+        for (int i = 0; i < numTeams; i++) {
+            remainingSpots[i] = targetSize - teams.get(i).getSize();
+            // Adjust for teams that should have one extra student (to handle remainder)
+            if (i < totalStudents % numTeams) {
+                remainingSpots[i]++;
+            }
+        }
+        
+        // Assign remaining students by time zone compatibility, while keeping team sizes balanced
+        for (String timeZone : timeZoneGroups) {
+            if (remainingByTimeZone.containsKey(timeZone)) {
+                List<Student> tzStudents = remainingByTimeZone.get(timeZone);
+                System.out.println("Assigning " + tzStudents.size() + " remaining students from " + timeZone + " time zone");
+                
+                // For each student in this time zone
+                for (Student student : tzStudents) {
+                    if (hasStudentBeenAssigned(student, teams)) {
+                        continue;
                     }
                     
-                    // For remaining students, use compatible time zones
-                    List<Student> remainingStudents = unassignedInTimeZone.stream()
-                            .filter(s -> !hasStudentBeenAssigned(s, teams))
-                            .collect(Collectors.toList());
+                    // Try to find a team that:
+                    // 1. Has compatible time zone students
+                    // 2. Has room for more students
                     
-                    if (!remainingStudents.isEmpty()) {
-                        // Get compatible time zones
-                        List<String> compatibleTimeZones = getCompatibleTimeZones(timeZone);
+                    // First, create a list of compatible time zones
+                    List<String> compatibleZones = new ArrayList<>();
+                    compatibleZones.add(timeZone); // Same time zone is most compatible
+                    compatibleZones.addAll(getCompatibleTimeZones(timeZone)); // Add compatible zones
+                    
+                    // Find best team for this student
+                    Team bestTeam = null;
+                    double bestScore = -1;
+                    
+                    for (int i = 0; i < numTeams; i++) {
+                        Team team = teams.get(i);
                         
-                        // Try to assign to compatible time zone teams
-                        for (String compatibleTz : compatibleTimeZones) {
-                            if (teamsByTimeZone.containsKey(compatibleTz)) {
-                                assignStudentsToMatchingTeams(remainingStudents, teamsByTimeZone.get(compatibleTz));
-                            }
-                            
-                            // Break if all students assigned
-                            if (remainingStudents.stream().allMatch(s -> hasStudentBeenAssigned(s, teams))) {
-                                break;
+                        // Skip teams that are already full
+                        if (remainingSpots[i] <= 0) {
+                            continue;
+                        }
+                        
+                        // Calculate a score based on:
+                        // - Time zone compatibility (higher is better)
+                        // - Team size (more room is better)
+                        
+                        // Get current team time zone distribution
+                        Map<String, Long> tzCounts = team.getMembers().stream()
+                                .filter(s -> s.getTimeZone() != null)
+                                .collect(Collectors.groupingBy(
+                                        s -> normalizeTimeZone(s.getTimeZone()),
+                                        Collectors.counting()));
+                        
+                        // Check time zone compatibility
+                        double tzScore = 0;
+                        for (int j = 0; j < compatibleZones.size(); j++) {
+                            String tz = compatibleZones.get(j);
+                            // Weight decreases with compatibility order
+                            double weight = 1.0 / (j + 1);
+                            tzScore += tzCounts.getOrDefault(tz, 0L) * weight;
+                        }
+                        
+                        // Calculate size score (teams with more room get higher score)
+                        double sizeScore = remainingSpots[i];
+                        
+                        // Combine scores (time zone compatibility is more important)
+                        double totalScore = tzScore * 2 + sizeScore;
+                        
+                        if (totalScore > bestScore) {
+                            bestScore = totalScore;
+                            bestTeam = team;
+                        }
+                    }
+                    
+                    // If we found a team, assign the student
+                    if (bestTeam != null) {
+                        int teamIndex = teams.indexOf(bestTeam);
+                        bestTeam.addMember(student);
+                        remainingSpots[teamIndex]--;
+                    } else {
+                        // If no suitable team found, find team with most space
+                        int maxIndex = 0;
+                        for (int i = 1; i < numTeams; i++) {
+                            if (remainingSpots[i] > remainingSpots[maxIndex]) {
+                                maxIndex = i;
                             }
                         }
+                        
+                        teams.get(maxIndex).addMember(student);
+                        remainingSpots[maxIndex]--;
                     }
                 }
             }
         }
         
-        // If any students remain unassigned, distribute them to teams with fewest members
-        List<Student> remainingStudents = students.stream()
+        // Final check for any unassigned students
+        List<Student> finalRemaining = students.stream()
                 .filter(s -> !hasStudentBeenAssigned(s, teams))
                 .collect(Collectors.toList());
         
-        System.out.println("Final assignment: " + remainingStudents.size() + " students still need assignment");
+        System.out.println("Final check: " + finalRemaining.size() + " students still need assignment");
         
-        for (Student student : remainingStudents) {
-            // Find team with fewest members
-            Team targetTeam = teams.stream()
-                    .min(Comparator.comparingInt(Team::getSize))
-                    .orElse(teams.get(0));
-            targetTeam.addMember(student);
+        // Assign any remaining students to teams with space
+        for (Student student : finalRemaining) {
+            int maxIndex = 0;
+            for (int i = 1; i < numTeams; i++) {
+                if (remainingSpots[i] > remainingSpots[maxIndex]) {
+                    maxIndex = i;
+                }
+            }
+            
+            teams.get(maxIndex).addMember(student);
+            remainingSpots[maxIndex]--;
         }
         
         // Set statistics for each team
         for (Team team : teams) {
             if (!team.getMembers().isEmpty()) {
-                int workingCount = (int) team.getMembers().stream()
+                int workingStudentCount = (int) team.getMembers().stream()
                         .filter(s -> s.getWorkingStatus() != null && 
                                 s.getWorkingStatus().toLowerCase().contains("yes"))
                         .count();
@@ -403,11 +526,17 @@ public class TeamFormationService {
                     team.countByTrack("SDET"), 
                     team.countByTrack("DA"),
                     team.countByTrack("DVLPR"),
-                    workingCount,
+                    workingStudentCount,
                     withPreviousHackathonCount,
                     timeZoneStats.length() > 0 ? timeZoneStats.substring(0, timeZoneStats.length() - 2) : "None",
                     team.getSize()));
             }
+        }
+        
+        // Print team sizes for verification
+        System.out.println("Final team sizes:");
+        for (int i = 0; i < teams.size(); i++) {
+            System.out.println("Team " + (i+1) + ": " + teams.get(i).getSize() + " members");
         }
         
         // Remove any empty teams
