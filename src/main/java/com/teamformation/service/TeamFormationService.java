@@ -238,14 +238,22 @@ public class TeamFormationService {
         List<Student> fullCourseStudents = new ArrayList<>();
         
         for (Student student : students) {
+            // For debugging: print all course types
+            System.out.println("Student: " + student.getName() + ", Course Type: " + student.getCourseType());
+            
             String courseType = student.getCourseType() != null ? student.getCourseType().toLowerCase() : "";
             if (courseType.contains("advanced")) {
                 advancedCourseStudents.add(student);
+                // Ensure courseType is explicitly set to "Advanced"
+                student.setCourseType("Advanced");
             } else if (courseType.contains("full")) {
                 fullCourseStudents.add(student);
+                // Ensure courseType is explicitly set to "Full Course"
+                student.setCourseType("Full Course");
             } else {
                 // Default to full course if not specified
                 fullCourseStudents.add(student);
+                student.setCourseType("Full Course");
             }
         }
         
