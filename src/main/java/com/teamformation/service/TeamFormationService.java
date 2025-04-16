@@ -101,11 +101,26 @@ public class TeamFormationService {
                       .append(", Previous Hackathon: ").append(prevHackathonCount);
         }
         
-        return TeamFormationResult.builder()
+        // Calculate total number of assigned students
+        int assignedCount = teams.stream()
+                .mapToInt(Team::getSize)
+                .sum();
+        
+        // Build the result object with proper statistics
+        TeamFormationResult result = TeamFormationResult.builder()
                 .teams(teams)
                 .eventType(eventType)
                 .summary(summaryBuilder.toString())
+                .totalStudents(students.size())
+                .assignedStudents(assignedCount)
                 .build();
+        
+        // For SQL Bootcamp, we need to classify teams
+        if (eventType == EventType.SQL_BOOTCAMP) {
+            result.classifyTeamsForSqlBootcamp();
+        }
+        
+        return result;
     }
 
     /**
@@ -354,8 +369,147 @@ public class TeamFormationService {
     // For example: formSeleniumHackathonTeams, formPhase1ApiHackathonTeams, etc.
     
     private List<Team> formSeleniumHackathonTeams(List<Student> students) {
-        // Implementation for Selenium Hackathon team formation
-        return new ArrayList<>();
+        int numStudents = students.size();
+        System.out.println("Forming Selenium Hackathon teams with " + numStudents + " students");
+        
+        // Calculate number of teams needed (5 members per team for Selenium Hackathon)
+        int numTeams = (int) Math.ceil((double) numStudents / HACKATHON_TEAM_SIZE);
+        System.out.println("Initial number of teams: " + numTeams);
+        
+        // Initialize teams
+        List<Team> teams = new ArrayList<>();
+        for (int i = 0; i < numTeams; i++) {
+            teams.add(Team.builder()
+                    .name("Team " + (i + 1))
+                    .build());
+        }
+        
+        // First, identify students who participated in previous Selenium hackathons
+        List<Student> experiencedStudents = students.stream()
+                .filter(s -> "Yes".equalsIgnoreCase(s.getPreviousHackathonParticipation()))
+                .collect(Collectors.toList());
+        
+        // Remove experienced students from main list for separate distribution
+        List<Student> remainingStudents = new ArrayList<>(students);
+        remainingStudents.removeAll(experiencedStudents);
+        
+        System.out.println("Number of students with previous Selenium Hackathon experience: " + experiencedStudents.size());
+        
+        // Distribute experienced students evenly across teams
+        int[] expCount = new int[numTeams]; // Count of experienced students per team
+        
+        for (Student student : experiencedStudents) {
+            // Find the team with fewest experienced members, ensuring batch diversity
+            int targetTeam = findBestTeamForStudent(teams, student, expCount, numTeams);
+            
+            // Add student to the team
+            teams.get(targetTeam).addMember(student);
+            expCount[targetTeam]++;
+        }
+        
+        // Next, distribute working students
+        List<Student> workingStudents = remainingStudents.stream()
+                .filter(s -> "Yes".equalsIgnoreCase(s.getWorkingStatus()))
+                .collect(Collectors.toList());
+        
+        // Remove working students from main list
+        remainingStudents.removeAll(workingStudents);
+        
+        System.out.println("Number of working students: " + workingStudents.size());
+        
+        // Track working students per team
+        int[] workingCount = new int[numTeams];
+        
+        // Update working count for already assigned students
+        for (int i = 0; i < numTeams; i++) {
+            workingCount[i] = (int) teams.get(i).getMembers().stream()
+                    .filter(s -> "Yes".equalsIgnoreCase(s.getWorkingStatus()))
+                    .count();
+        }
+        
+        // Distribute working students evenly
+        for (Student student : workingStudents) {
+            // Find the team with fewest working members, ensuring batch diversity
+            int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
+            
+            // Add student to the team
+            teams.get(targetTeam).addMember(student);
+            workingCount[targetTeam]++;
+        }
+        
+        // Now sort remaining students by time zone to group compatible time zones
+        Map<String, List<Student>> timeZoneGroups = new HashMap<>();
+        
+        for (Student student : remainingStudents) {
+            String normalizedTimeZone = normalizeTimeZone(student.getTimeZone());
+            if (!timeZoneGroups.containsKey(normalizedTimeZone)) {
+                timeZoneGroups.put(normalizedTimeZone, new ArrayList<>());
+            }
+            timeZoneGroups.get(normalizedTimeZone).add(student);
+        }
+        
+        // Log time zone distribution
+        for (Map.Entry<String, List<Student>> entry : timeZoneGroups.entrySet()) {
+            System.out.println("Time zone " + entry.getKey() + ": " + entry.getValue().size() + " students");
+        }
+        
+        // Group compatible time zones
+        // EST with CST, CST with PST
+        List<String> timeZones = new ArrayList<>(timeZoneGroups.keySet());
+        for (String timeZone : timeZones) {
+            List<Student> studentsInTimeZone = timeZoneGroups.get(timeZone);
+            
+            for (Student student : studentsInTimeZone) {
+                // Find the best team based on batch diversity and team size
+                int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
+                teams.get(targetTeam).addMember(student);
+            }
+        }
+        
+        // Calculate and set statistics for each team
+        for (Team team : teams) {
+            // Generate statistics for time zones
+            StringBuilder timeZoneStats = new StringBuilder();
+            Map<String, Long> tzCount = team.getMembers().stream()
+                    .collect(Collectors.groupingBy(
+                            s -> normalizeTimeZone(s.getTimeZone()),
+                            Collectors.counting()
+                    ));
+            
+            for (Map.Entry<String, Long> entry : tzCount.entrySet()) {
+                timeZoneStats.append(entry.getKey()).append(": ").append(entry.getValue()).append(", ");
+            }
+            
+            // Count students with previous hackathon experience
+            int withPreviousHackathonCount = (int) team.getMembers().stream()
+                    .filter(s -> "Yes".equalsIgnoreCase(s.getPreviousHackathonParticipation()))
+                    .count();
+            
+            // Count working students
+            int workingStudentCount = (int) team.getMembers().stream()
+                    .filter(s -> "Yes".equalsIgnoreCase(s.getWorkingStatus()))
+                    .count();
+            
+            team.setStatistics(String.format(
+                    "Total: %d, SDET: %d, DA: %d, Working: %d, Experienced: %d, Time Zones: %s",
+                    team.getSize(),
+                    team.getSdetCount(),
+                    team.getDaCount(),
+                    workingStudentCount,
+                    withPreviousHackathonCount,
+                    timeZoneStats.length() > 0 ? timeZoneStats.substring(0, timeZoneStats.length() - 2) : "None"));
+        }
+        
+        // Print team sizes for verification
+        System.out.println("Final team sizes for Selenium Hackathon:");
+        for (int i = 0; i < teams.size(); i++) {
+            System.out.println("Team " + (i+1) + ": " + teams.get(i).getSize() + " members");
+        }
+        
+        // Remove any empty teams
+        teams.removeIf(team -> team.getMembers().isEmpty());
+        
+        return teams;
     }
     
     private List<Team> formPhase1ApiHackathonTeams(List<Student> students) {
@@ -693,7 +847,145 @@ public class TeamFormationService {
     }
     
     private List<Team> formScrapingHackathonTeams(List<Student> students) {
-        // Implementation for Recipe Scraping Hackathon team formation
-        return new ArrayList<>();
+        int numStudents = students.size();
+        System.out.println("Forming Recipe Scraping Hackathon teams with " + numStudents + " students");
+        
+        // Calculate number of teams needed (5 members per team for Recipe Scraping Hackathon)
+        int numTeams = (int) Math.ceil((double) numStudents / HACKATHON_TEAM_SIZE);
+        System.out.println("Initial number of teams: " + numTeams);
+        
+        // Initialize teams
+        List<Team> teams = new ArrayList<>();
+        for (int i = 0; i < numTeams; i++) {
+            teams.add(Team.builder()
+                    .name("Team " + (i + 1))
+                    .build());
+        }
+        
+        // First, identify students who participated in previous Recipe Scraping hackathons
+        List<Student> experiencedStudents = students.stream()
+                .filter(s -> "Yes".equalsIgnoreCase(s.getPreviousHackathonParticipation()))
+                .collect(Collectors.toList());
+        
+        // Remove experienced students from main list for separate distribution
+        List<Student> remainingStudents = new ArrayList<>(students);
+        remainingStudents.removeAll(experiencedStudents);
+        
+        System.out.println("Number of students with previous Recipe Scraping Hackathon experience: " + experiencedStudents.size());
+        
+        // Distribute experienced students evenly across teams
+        int[] expCount = new int[numTeams]; // Count of experienced students per team
+        
+        for (Student student : experiencedStudents) {
+            // Find the team with fewest experienced members, ensuring batch diversity
+            int targetTeam = findBestTeamForStudent(teams, student, expCount, numTeams);
+            
+            // Add student to the team
+            teams.get(targetTeam).addMember(student);
+            expCount[targetTeam]++;
+        }
+        
+        // Next, distribute working students
+        List<Student> workingStudents = remainingStudents.stream()
+                .filter(s -> "Yes".equalsIgnoreCase(s.getWorkingStatus()))
+                .collect(Collectors.toList());
+        
+        // Remove working students from main list
+        remainingStudents.removeAll(workingStudents);
+        
+        System.out.println("Number of working students: " + workingStudents.size());
+        
+        // Track working students per team
+        int[] workingCount = new int[numTeams];
+        
+        // Update working count for already assigned students
+        for (int i = 0; i < numTeams; i++) {
+            workingCount[i] = (int) teams.get(i).getMembers().stream()
+                    .filter(s -> "Yes".equalsIgnoreCase(s.getWorkingStatus()))
+                    .count();
+        }
+        
+        // Distribute working students evenly
+        for (Student student : workingStudents) {
+            // Find the team with fewest working members, ensuring batch diversity
+            int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
+            
+            // Add student to the team
+            teams.get(targetTeam).addMember(student);
+            workingCount[targetTeam]++;
+        }
+        
+        // Now sort remaining students by time zone to group compatible time zones
+        Map<String, List<Student>> timeZoneGroups = new HashMap<>();
+        
+        for (Student student : remainingStudents) {
+            String normalizedTimeZone = normalizeTimeZone(student.getTimeZone());
+            if (!timeZoneGroups.containsKey(normalizedTimeZone)) {
+                timeZoneGroups.put(normalizedTimeZone, new ArrayList<>());
+            }
+            timeZoneGroups.get(normalizedTimeZone).add(student);
+        }
+        
+        // Log time zone distribution
+        for (Map.Entry<String, List<Student>> entry : timeZoneGroups.entrySet()) {
+            System.out.println("Time zone " + entry.getKey() + ": " + entry.getValue().size() + " students");
+        }
+        
+        // Group compatible time zones
+        List<String> timeZones = new ArrayList<>(timeZoneGroups.keySet());
+        for (String timeZone : timeZones) {
+            List<Student> studentsInTimeZone = timeZoneGroups.get(timeZone);
+            
+            for (Student student : studentsInTimeZone) {
+                // Find the best team based on batch diversity and team size
+                int targetTeam = findBestTeamForStudent(teams, student, workingCount, numTeams);
+                teams.get(targetTeam).addMember(student);
+            }
+        }
+        
+        // Calculate and set statistics for each team
+        for (Team team : teams) {
+            // Generate statistics for time zones
+            StringBuilder timeZoneStats = new StringBuilder();
+            Map<String, Long> tzCount = team.getMembers().stream()
+                    .collect(Collectors.groupingBy(
+                            s -> normalizeTimeZone(s.getTimeZone()),
+                            Collectors.counting()
+                    ));
+            
+            for (Map.Entry<String, Long> entry : tzCount.entrySet()) {
+                timeZoneStats.append(entry.getKey()).append(": ").append(entry.getValue()).append(", ");
+            }
+            
+            // Count students with previous hackathon experience
+            int withPreviousHackathonCount = (int) team.getMembers().stream()
+                    .filter(s -> "Yes".equalsIgnoreCase(s.getPreviousHackathonParticipation()))
+                    .count();
+            
+            // Count working students
+            int workingStudentCount = (int) team.getMembers().stream()
+                    .filter(s -> "Yes".equalsIgnoreCase(s.getWorkingStatus()))
+                    .count();
+            
+            team.setStatistics(String.format(
+                    "Total: %d, SDET: %d, DA: %d, Working: %d, Experienced: %d, Time Zones: %s",
+                    team.getSize(),
+                    team.getSdetCount(),
+                    team.getDaCount(),
+                    workingStudentCount,
+                    withPreviousHackathonCount,
+                    timeZoneStats.length() > 0 ? timeZoneStats.substring(0, timeZoneStats.length() - 2) : "None"));
+        }
+        
+        // Print team sizes for verification
+        System.out.println("Final team sizes for Recipe Scraping Hackathon:");
+        for (int i = 0; i < teams.size(); i++) {
+            System.out.println("Team " + (i+1) + ": " + teams.get(i).getSize() + " members");
+        }
+        
+        // Remove any empty teams
+        teams.removeIf(team -> team.getMembers().isEmpty());
+        
+        return teams;
     }
 }
