@@ -84,6 +84,11 @@ public class TeamFormationController {
             return "redirect:/";
         }
         
+        // For SQL Bootcamp, classify teams into advanced course and full course
+        if (result.getEventType() == EventType.SQL_BOOTCAMP) {
+            result.classifyTeamsForSqlBootcamp();
+        }
+        
         model.addAttribute("result", result);
         return "results";
     }
