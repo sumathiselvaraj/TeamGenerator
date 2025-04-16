@@ -178,8 +178,19 @@ public class TeamFormationService {
         }
 
         // Basic strategy: try to assign equal numbers of each track to each team
+        // While ensuring we don't exceed the maximum team size limit
         for (int i = 0; i < fullTeamCount; i++) {
             Team team = fullTeams.get(i);
+            
+            // Get current team size (should include any DVLPR already added)
+            int currentTeamSize = team.getSize();
+            
+            // Calculate remaining space in this team
+            int remainingSpace = SQL_BOOTCAMP_FULL_COURSE_TEAM_SIZE - currentTeamSize;
+            
+            if (remainingSpace <= 0) {
+                continue; // Skip this team if it's already at max capacity
+            }
 
             // Determine expected number of SDET and DA per team
             int sdetPerTeam = sdetStudents.size() / fullTeamCount;
@@ -192,6 +203,31 @@ public class TeamFormationService {
 
             if (i < daStudents.size() % fullTeamCount) {
                 daPerTeam++;
+            }
+            
+            // Make sure we don't exceed the team size limit with SDET + DA
+            if (sdetPerTeam + daPerTeam > remainingSpace) {
+                // Adjust numbers proportionally if they exceed the limit
+                int totalNeeded = sdetPerTeam + daPerTeam;
+                double proportion = (double) remainingSpace / totalNeeded;
+                
+                // Ensure at least one of each if possible
+                int newSdetPerTeam = Math.max(1, (int) Math.round(sdetPerTeam * proportion));
+                int newDaPerTeam = Math.max(1, (int) Math.round(daPerTeam * proportion));
+                
+                // Final check to ensure we don't exceed the limit
+                if (newSdetPerTeam + newDaPerTeam > remainingSpace) {
+                    // If still over, reduce the larger group by the excess
+                    int excess = (newSdetPerTeam + newDaPerTeam) - remainingSpace;
+                    if (newSdetPerTeam >= newDaPerTeam) {
+                        newSdetPerTeam -= excess;
+                    } else {
+                        newDaPerTeam -= excess;
+                    }
+                }
+                
+                sdetPerTeam = newSdetPerTeam;
+                daPerTeam = newDaPerTeam;
             }
 
             // Add SDET students to team
