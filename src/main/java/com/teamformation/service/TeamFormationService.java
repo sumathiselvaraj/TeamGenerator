@@ -56,6 +56,10 @@ public class TeamFormationService {
             teams = formApiHackathonTeams(students, eventType, false); // Phase 2 only needs DVLPR distribution
             unassignedStudents = findUnassignedStudents(students, teams);
             summary = generateApiHackathonSummary(teams, unassignedStudents, eventType);
+        } else if (eventType == EventType.RECIPE_SCRAPING_HACKATHON) {
+            teams = formHackathonTeams(students, eventType); // Using the general hackathon team formation
+            unassignedStudents = findUnassignedStudents(students, teams);
+            summary = generateHackathonSummary(teams, unassignedStudents, eventType);
         } else {
             // Default handling for other event types
             teams = formGenericTeams(students);

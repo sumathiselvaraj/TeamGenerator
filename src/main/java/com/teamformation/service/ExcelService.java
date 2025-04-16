@@ -85,6 +85,10 @@ public class ExcelService {
                 if (trackIdx == -1 || workingStatusIdx == -1 || timeZoneIdx == -1 || batchIdx == -1) {
                     throw new Exception("Required columns (Track, Batch No, Working Status, Time Zone) missing for API Hackathon");
                 }
+            } else if (eventType == EventType.RECIPE_SCRAPING_HACKATHON) {
+                if (trackIdx == -1 || workingStatusIdx == -1 || timeZoneIdx == -1) {
+                    throw new Exception("Required columns (Track with Batch No, Working Status, Time Zone) missing for Recipe Scraping Hackathon");
+                }
             }
             
             // Parse data rows
@@ -286,6 +290,66 @@ public class ExcelService {
                             Cell previousApiHackathonCell = row.getCell(previousApiHackathonIdx);
                             if (previousApiHackathonCell != null) {
                                 student.setPreviousHackathon(getCellValueAsString(previousApiHackathonCell));
+                            }
+                        }
+                        
+                        // For hackathons, use event type as course type to maintain compatibility
+                        student.setCourseType(eventType.getDisplayName());
+                    } else if (eventType == EventType.RECIPE_SCRAPING_HACKATHON) {
+                        // Parse track with batch for Recipe Scraping Hackathon (same format as Selenium Hackathon)
+                        if (trackIdx >= 0) {
+                            Cell trackWithBatchCell = row.getCell(trackIdx);
+                            if (trackWithBatchCell != null) {
+                                String trackWithBatch = getCellValueAsString(trackWithBatchCell).trim();
+                                
+                                // Extract track and batch from combined field
+                                if (trackWithBatch.toUpperCase().contains("SDET")) {
+                                    student.setTrack("SDET");
+                                    // Try to extract batch number
+                                    String batchStr = trackWithBatch.replaceAll("(?i).*?SDET\\s*", "").trim();
+                                    student.setBatch(batchStr);
+                                } else if (trackWithBatch.toUpperCase().contains("DA")) {
+                                    student.setTrack("DA");
+                                    // Try to extract batch number
+                                    String batchStr = trackWithBatch.replaceAll("(?i).*?DA\\s*", "").trim();
+                                    student.setBatch(batchStr);
+                                } else {
+                                    student.setTrack(trackWithBatch);
+                                }
+                            } else {
+                                student.setTrack("Unknown");
+                            }
+                        }
+                        
+                        // Parse working status
+                        if (workingStatusIdx >= 0) {
+                            Cell workingCell = row.getCell(workingStatusIdx);
+                            if (workingCell != null) {
+                                student.setWorkingStatus(getCellValueAsString(workingCell));
+                            }
+                        }
+                        
+                        // Parse time zone
+                        if (timeZoneIdx >= 0) {
+                            Cell timeZoneCell = row.getCell(timeZoneIdx);
+                            if (timeZoneCell != null) {
+                                student.setTimeZone(getCellValueAsString(timeZoneCell));
+                            }
+                        }
+                        
+                        // Parse DSAlgo completion status
+                        if (dsAlgoCompletionIdx >= 0) {
+                            Cell dsAlgoCell = row.getCell(dsAlgoCompletionIdx);
+                            if (dsAlgoCell != null) {
+                                student.setDsAlgoCompletion(getCellValueAsString(dsAlgoCell));
+                            }
+                        }
+                        
+                        // Parse previous scraping hackathon participation
+                        if (previousHackathonIdx >= 0) {
+                            Cell previousHackathonCell = row.getCell(previousHackathonIdx);
+                            if (previousHackathonCell != null) {
+                                student.setPreviousHackathon(getCellValueAsString(previousHackathonCell));
                             }
                         }
                         
