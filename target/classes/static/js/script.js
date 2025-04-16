@@ -130,6 +130,48 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td>Yes</td>
                     </tr>
                 </tbody>`;
+        } else if (eventType === 'PHASE1_API_HACKATHON' || eventType === 'PHASE2_API_HACKATHON') {
+            tableExample.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Email Address</th>
+                        <th>Full Name</th>
+                        <th>Batch No</th>
+                        <th>Time Zone</th>
+                        <th>Are you working?</th>
+                        <th>Track</th>
+                        <th>Completed DSAlgo?</th>
+                        <th>Completed API bootcamp?</th>
+                        <th>Previous API hackathon?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>2025-04-01 10:30:15</td>
+                        <td>john.doe@example.com</td>
+                        <td>John Doe</td>
+                        <td>B31</td>
+                        <td>EST</td>
+                        <td>Yes</td>
+                        <td>DVLPR</td>
+                        <td>Yes</td>
+                        <td>Yes</td>
+                        <td>No</td>
+                    </tr>
+                    <tr>
+                        <td>2025-04-01 11:15:20</td>
+                        <td>jane.smith@example.com</td>
+                        <td>Jane Smith</td>
+                        <td>B32</td>
+                        <td>PST</td>
+                        <td>No</td>
+                        <td>DA</td>
+                        <td>Yes</td>
+                        <td>Yes</td>
+                        <td>Yes</td>
+                    </tr>
+                </tbody>`;
         } else {
             // Default example
             tableExample.innerHTML = `

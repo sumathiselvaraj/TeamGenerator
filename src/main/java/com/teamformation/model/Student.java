@@ -22,4 +22,7 @@ public class Student {
     private String timeZone;
     private String dsAlgoCompletion;
     private String previousHackathon;
+    
+    // Additional fields for API hackathon events
+    private String apiBootcampCompletion;
 }

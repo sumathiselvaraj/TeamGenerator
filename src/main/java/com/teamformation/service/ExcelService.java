@@ -79,7 +79,11 @@ public class ExcelService {
                 }
             } else if (eventType == EventType.SELENIUM_HACKATHON) {
                 if (trackIdx == -1 || workingStatusIdx == -1 || timeZoneIdx == -1) {
-                    throw new Exception("Required columns (Track with Batch No, Working Status, Time Zone) missing for Hackathon");
+                    throw new Exception("Required columns (Track with Batch No, Working Status, Time Zone) missing for Selenium Hackathon");
+                }
+            } else if (eventType == EventType.PHASE1_API_HACKATHON || eventType == EventType.PHASE2_API_HACKATHON) {
+                if (trackIdx == -1 || workingStatusIdx == -1 || timeZoneIdx == -1 || batchIdx == -1) {
+                    throw new Exception("Required columns (Track, Batch No, Working Status, Time Zone) missing for API Hackathon");
                 }
             }
             
@@ -154,7 +158,7 @@ public class ExcelService {
                         }
                     } 
                     else if (eventType == EventType.SELENIUM_HACKATHON) {
-                        // Parse track with batch for Hackathons
+                        // Parse track with batch for Selenium Hackathons
                         if (trackIdx >= 0) {
                             Cell trackWithBatchCell = row.getCell(trackIdx);
                             if (trackWithBatchCell != null) {
@@ -214,6 +218,80 @@ public class ExcelService {
                         // For hackathons, use event type as course type to maintain compatibility
                         student.setCourseType(eventType.getDisplayName());
                     }
+                    else if (eventType == EventType.PHASE1_API_HACKATHON || eventType == EventType.PHASE2_API_HACKATHON) {
+                        // Parse track
+                        if (trackIdx >= 0) {
+                            Cell trackCell = row.getCell(trackIdx);
+                            if (trackCell != null) {
+                                String track = getCellValueAsString(trackCell).trim();
+                                // Standardize track values
+                                if (track.toUpperCase().contains("SDET")) {
+                                    student.setTrack("SDET");
+                                } else if (track.toUpperCase().contains("DA")) {
+                                    student.setTrack("DA");
+                                } else if (track.toUpperCase().contains("DVLPR")) {
+                                    student.setTrack("DVLPR");
+                                } else {
+                                    student.setTrack(track);
+                                }
+                            } else {
+                                student.setTrack("Unknown");
+                            }
+                        }
+                        
+                        // Parse batch 
+                        if (batchIdx >= 0) {
+                            Cell batchCell = row.getCell(batchIdx);
+                            if (batchCell != null) {
+                                student.setBatch(getCellValueAsString(batchCell));
+                            }
+                        }
+                        
+                        // Parse working status
+                        if (workingStatusIdx >= 0) {
+                            Cell workingCell = row.getCell(workingStatusIdx);
+                            if (workingCell != null) {
+                                student.setWorkingStatus(getCellValueAsString(workingCell));
+                            }
+                        }
+                        
+                        // Parse time zone
+                        if (timeZoneIdx >= 0) {
+                            Cell timeZoneCell = row.getCell(timeZoneIdx);
+                            if (timeZoneCell != null) {
+                                student.setTimeZone(getCellValueAsString(timeZoneCell));
+                            }
+                        }
+                        
+                        // Parse DSAlgo completion status
+                        if (dsAlgoCompletionIdx >= 0) {
+                            Cell dsAlgoCell = row.getCell(dsAlgoCompletionIdx);
+                            if (dsAlgoCell != null) {
+                                student.setDsAlgoCompletion(getCellValueAsString(dsAlgoCell));
+                            }
+                        }
+                        
+                        // Parse API bootcamp completion status - this would be in column index 8 based on your format
+                        int apiBootcampIdx = findColumnIndex(headerRow, "Have you completed USER API bootcamp", "API bootcamp");
+                        if (apiBootcampIdx >= 0) {
+                            Cell apiBootcampCell = row.getCell(apiBootcampIdx);
+                            if (apiBootcampCell != null) {
+                                student.setApiBootcampCompletion(getCellValueAsString(apiBootcampCell));
+                            }
+                        }
+                        
+                        // Parse previous API hackathon participation - this would be in column index 9 based on your format
+                        int previousApiHackathonIdx = findColumnIndex(headerRow, "Have you participated in any API Hackathon", "API Hackathon");
+                        if (previousApiHackathonIdx >= 0) {
+                            Cell previousApiHackathonCell = row.getCell(previousApiHackathonIdx);
+                            if (previousApiHackathonCell != null) {
+                                student.setPreviousHackathon(getCellValueAsString(previousApiHackathonCell));
+                            }
+                        }
+                        
+                        // For hackathons, use event type as course type to maintain compatibility
+                        student.setCourseType(eventType.getDisplayName());
+                    }
                     
                     students.add(student);
                 } catch (Exception e) {
@@ -261,5 +339,33 @@ public class ExcelService {
             default:
                 return "";
         }
+    }
+    
+    /**
+     * Helper method to find the index of a column based on header text.
+     * Searches for column headers containing the specified primary and alternative texts.
+     * 
+     * @param headerRow The header row to search in
+     * @param primaryText The primary text to look for in column headers
+     * @param alternativeText Alternative text to look for if primary text not found
+     * @return The index of the matching column, or -1 if not found
+     */
+    private int findColumnIndex(Row headerRow, String primaryText, String alternativeText) {
+        if (headerRow == null) {
+            return -1;
+        }
+        
+        for (int i = 0; i < headerRow.getLastCellNum(); i++) {
+            Cell cell = headerRow.getCell(i);
+            if (cell != null) {
+                String headerText = getCellValueAsString(cell).trim();
+                if (headerText.toLowerCase().contains(primaryText.toLowerCase()) || 
+                    headerText.toLowerCase().contains(alternativeText.toLowerCase())) {
+                    return i;
+                }
+            }
+        }
+        
+        return -1;
     }
 }
