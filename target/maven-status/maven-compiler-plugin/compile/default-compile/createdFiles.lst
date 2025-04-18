@@ -9,5 +9,6 @@ com/teamformation/controller/TeamFormationController.class
 com/teamformation/model/Student$StudentBuilder.class
 com/teamformation/model/Team.class
 com/teamformation/model/EventType.class
+com/teamformation/exception/ExcelFormulaException.class
 com/teamformation/service/ExcelService.class
 com/teamformation/model/TeamFormationResult$TeamFormationResultBuilder.class

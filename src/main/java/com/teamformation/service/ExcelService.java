@@ -1,5 +1,6 @@
 package com.teamformation.service;
 
+import com.teamformation.exception.ExcelFormulaException;
 import com.teamformation.model.EventType;
 import com.teamformation.model.Student;
 import lombok.extern.slf4j.Slf4j;
@@ -446,24 +447,31 @@ public class ExcelService {
                         return cell.getCellFormula();
                     }
                 } catch (Exception e) {
-                    // Log the error with the formula cell details for debugging
+                    // Get cell details for better error reporting
                     String cellRef = cell.getAddress().formatAsString();
                     String sheetName = cell.getSheet().getSheetName();
+                    int rowIndex = cell.getRowIndex();
+                    int columnIndex = cell.getColumnIndex();
+                    
                     String formula = "";
                     try {
                         formula = cell.getCellFormula();
                     } catch (Exception ignored) {}
                     
+                    // Log the error with detailed information
                     System.err.println("Error processing formula cell at " + sheetName + "!" + cellRef + 
+                                       " (Row: " + (rowIndex+1) + ", Column: " + getColumnName(columnIndex) + ")" +
                                        " with formula: " + formula + ". Error: " + e.getMessage());
                     
-                    // If all else fails, try to return the formula itself
-                    try {
-                        return cell.getCellFormula();
-                    } catch (Exception ex) {
-                        // Last resort - return empty string if we can't get the formula
-                        return "";
-                    }
+                    // Throw a custom exception with detailed cell information
+                    throw new ExcelFormulaException(
+                        "Cannot get a STRING value from a NUMERIC formula cell",
+                        sheetName,
+                        cellRef,
+                        formula,
+                        rowIndex,
+                        columnIndex
+                    );
                 }
             default:
                 return "";
@@ -496,5 +504,20 @@ public class ExcelService {
         }
         
         return -1;
+    }
+    
+    /**
+     * Converts a 0-based column index to Excel column name (A, B, C, ..., Z, AA, AB, etc.)
+     */
+    private String getColumnName(int columnIndex) {
+        StringBuilder columnName = new StringBuilder();
+        
+        while (columnIndex >= 0) {
+            int remainder = columnIndex % 26;
+            columnName.insert(0, (char) (remainder + 'A'));
+            columnIndex = (columnIndex / 26) - 1;
+        }
+        
+        return columnName.toString();
     }
 }
