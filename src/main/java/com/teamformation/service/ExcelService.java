@@ -99,14 +99,22 @@ public class ExcelService {
                 try {
                     Student student = new Student();
                     
+                    // Log the row number for debugging
+                    System.out.println("Processing row " + (i+1));
+                    
                     // Parse timestamp if available
                     if (timestampIdx >= 0) {
                         Cell cell = row.getCell(timestampIdx);
                         if (cell != null) {
-                            if (cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
-                                student.setTimestamp(cell.getDateCellValue().toString());
-                            } else {
-                                student.setTimestamp(getCellValueAsString(cell));
+                            try {
+                                if (cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
+                                    student.setTimestamp(cell.getDateCellValue().toString());
+                                } else {
+                                    student.setTimestamp(getCellValueAsString(cell));
+                                }
+                            } catch (Exception e) {
+                                System.err.println("Error processing timestamp cell in row " + (i+1) + ": " + e.getMessage());
+                                student.setTimestamp("");
                             }
                         }
                     }
@@ -410,11 +418,50 @@ public class ExcelService {
                 return String.valueOf(cell.getBooleanCellValue());
             case FORMULA:
                 try {
-                    return cell.getStringCellValue();
+                    // First check the cached formula result type
+                    CellType formulaResultType = cell.getCachedFormulaResultType();
+                    
+                    if (formulaResultType == CellType.NUMERIC) {
+                        // If the formula result is numeric, handle it as a numeric value
+                        if (DateUtil.isCellDateFormatted(cell)) {
+                            return cell.getDateCellValue().toString();
+                        } else {
+                            // Convert numeric to string without decimal for integers
+                            double value = cell.getNumericCellValue();
+                            if (value == Math.floor(value)) {
+                                return String.valueOf((int) value);
+                            } else {
+                                return String.valueOf(value);
+                            }
+                        }
+                    } else if (formulaResultType == CellType.STRING) {
+                        // If the formula result is string, get it as string
+                        return cell.getStringCellValue();
+                    } else if (formulaResultType == CellType.BOOLEAN) {
+                        // If the formula result is boolean, get it as boolean
+                        return String.valueOf(cell.getBooleanCellValue());
+                    } else {
+                        // For other types or if there's an error in the formula
+                        // Just get the formula itself
+                        return cell.getCellFormula();
+                    }
                 } catch (Exception e) {
+                    // Log the error with the formula cell details for debugging
+                    String cellRef = cell.getAddress().formatAsString();
+                    String sheetName = cell.getSheet().getSheetName();
+                    String formula = "";
                     try {
-                        return String.valueOf(cell.getNumericCellValue());
+                        formula = cell.getCellFormula();
+                    } catch (Exception ignored) {}
+                    
+                    System.err.println("Error processing formula cell at " + sheetName + "!" + cellRef + 
+                                       " with formula: " + formula + ". Error: " + e.getMessage());
+                    
+                    // If all else fails, try to return the formula itself
+                    try {
+                        return cell.getCellFormula();
                     } catch (Exception ex) {
+                        // Last resort - return empty string if we can't get the formula
                         return "";
                     }
                 }
