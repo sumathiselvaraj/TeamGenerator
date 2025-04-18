@@ -463,8 +463,8 @@ public class ExcelService {
                                        " (Row: " + (rowIndex+1) + ", Column: " + getColumnName(columnIndex) + ")" +
                                        " with formula: " + formula + ". Error: " + e.getMessage());
                     
-                    // Throw a custom exception with detailed cell information
-                    throw new ExcelFormulaException(
+                    // Create custom exception with detailed cell information
+                    ExcelFormulaException excelError = new ExcelFormulaException(
                         "Cannot get a STRING value from a NUMERIC formula cell",
                         sheetName,
                         cellRef,
@@ -472,6 +472,12 @@ public class ExcelService {
                         rowIndex,
                         columnIndex
                     );
+                    
+                    // Log the detailed error message
+                    System.err.println("EXCEL_FORMULA_ERROR: " + excelError.getMessage());
+                    
+                    // Throw the exception with the detailed message
+                    throw excelError;
                 }
             default:
                 return "";

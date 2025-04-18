@@ -71,10 +71,22 @@ public class TeamFormationController {
             
             return "redirect:/results";
         } catch (com.teamformation.exception.ExcelFormulaException e) {
-            // For our custom formula exceptions, pass the detailed message
-            redirectAttributes.addFlashAttribute("errorMessage", "Error processing file: " + e.getMessage());
+            // Create a detailed HTML error message for formula cell errors
+            String detailedErrorMessage = 
+                "<strong>Excel Formula Error</strong><br>" +
+                "Problem: Cannot get a STRING value from a NUMERIC formula cell<br>" + 
+                "Location: " + e.getSheetName() + ", Cell " + e.getCellReference() + 
+                " (Row: " + (e.getRowIndex() + 1) + ", Column: " + e.getCellReference().replaceAll("[0-9]", "") + ")<br><br>" +
+                "<strong>How to fix:</strong><br>" +
+                "1. Open your Excel file<br>" +
+                "2. Go to sheet: " + e.getSheetName() + "<br>" +
+                "3. Find cell: " + e.getCellReference() + "<br>" +
+                "4. Replace the formula with a plain text value";
+            
+            redirectAttributes.addFlashAttribute("errorMessage", detailedErrorMessage);
+            
             // Also log the error for debugging
-            System.err.println("Excel Formula Exception: " + e.getMessage());
+            System.err.println("EXCEL_FORMULA_ERROR_CONTROLLER: " + e.getMessage());
             return "redirect:/";
         } catch (Exception e) {
             // For other exceptions, still show a message
