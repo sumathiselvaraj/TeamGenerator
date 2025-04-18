@@ -43,7 +43,35 @@ public class ExcelService {
             for (int i = 0; i < headerRow.getLastCellNum(); i++) {
                 Cell cell = headerRow.getCell(i);
                 if (cell != null) {
-                    String header = cell.getStringCellValue().trim().toLowerCase();
+                    String header;
+                    try {
+                        header = cell.getStringCellValue().trim().toLowerCase();
+                    } catch (IllegalStateException e) {
+                        // This catches the "Cannot get a STRING value from a NUMERIC formula cell" error in header row
+                        String sheetName = sheet.getSheetName();
+                        String cellRef = cell.getAddress().formatAsString();
+                        int rowIndex = cell.getRowIndex();
+                        int columnIndex = cell.getColumnIndex();
+                        String formula = "";
+                        try {
+                            formula = cell.getCellFormula();
+                        } catch (Exception ignored) {}
+                        
+                        String columnName = getColumnName(columnIndex);
+                        
+                        System.err.println("EXCEL_HEADER_ERROR: Formula cell in header row at " + 
+                                         sheetName + "!" + cellRef + 
+                                         " (Column: " + columnName + ")");
+                        
+                        throw new ExcelFormulaException(
+                            "Cannot process Excel header due to a numeric formula",
+                            sheetName,
+                            cellRef,
+                            formula,
+                            rowIndex,
+                            columnIndex
+                        );
+                    }
                     
                     if (header.contains("timestamp")) {
                         timestampIdx = i;
