@@ -1,6 +1,7 @@
 /home/runner/workspace/src/main/java/com/teamformation/TeamFormationApplication.java
 /home/runner/workspace/src/main/java/com/teamformation/service/TeamFormationService.java
 /home/runner/workspace/src/main/java/com/teamformation/model/Student.java
+/home/runner/workspace/src/main/java/com/teamformation/exception/ExcelFormulaException.java
 /home/runner/workspace/src/main/java/com/teamformation/model/EventType.java
 /home/runner/workspace/src/main/java/com/teamformation/service/ExcelService.java
 /home/runner/workspace/src/main/java/com/teamformation/model/Team.java

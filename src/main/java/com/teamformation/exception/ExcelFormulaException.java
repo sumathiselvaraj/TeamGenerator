@@ -24,7 +24,9 @@ public class ExcelFormulaException extends RuntimeException {
     public String getMessage() {
         return super.getMessage() + " in cell " + cellReference + 
                " (Sheet: " + sheetName + ", Row: " + (rowIndex + 1) + 
-               ", Column: " + getColumnName(columnIndex) + ")";
+               ", Column: " + getColumnName(columnIndex) + "). " + 
+               "Please check this cell in your Excel file and make sure it doesn't contain a formula that returns a numeric value. " +
+               "Convert the formula to a plain text value or remove it.";
     }
 
     /**

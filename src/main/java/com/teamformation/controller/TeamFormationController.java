@@ -70,8 +70,17 @@ public class TeamFormationController {
             session.setAttribute("teamFormationResult", result);
             
             return "redirect:/results";
-        } catch (Exception e) {
+        } catch (com.teamformation.exception.ExcelFormulaException e) {
+            // For our custom formula exceptions, pass the detailed message
             redirectAttributes.addFlashAttribute("errorMessage", "Error processing file: " + e.getMessage());
+            // Also log the error for debugging
+            System.err.println("Excel Formula Exception: " + e.getMessage());
+            return "redirect:/";
+        } catch (Exception e) {
+            // For other exceptions, still show a message
+            redirectAttributes.addFlashAttribute("errorMessage", "Error processing file: " + e.getMessage());
+            // Log the exception with stack trace for debugging
+            e.printStackTrace();
             return "redirect:/";
         }
     }
