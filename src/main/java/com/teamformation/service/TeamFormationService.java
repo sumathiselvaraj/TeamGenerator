@@ -57,6 +57,10 @@ public class TeamFormationService {
             teams = formApiHackathonTeams(students, eventType, false); // Phase 2 only needs DVLPR distribution
             unassignedStudents = findUnassignedStudents(students, teams);
             summary = generateApiHackathonSummary(teams, unassignedStudents, eventType);
+        } else if (eventType == EventType.SQL_HACKATHON) {
+            teams = formSqlHackathonTeams(students);
+            unassignedStudents = findUnassignedStudents(students, teams);
+            summary = generateSqlHackathonSummary(teams, unassignedStudents);
         } else {
             // Default handling for other event types
             teams = formGenericTeams(students);
@@ -916,6 +920,276 @@ public class TeamFormationService {
         return summary.toString();
     }
 
+    private List<Team> formSqlHackathonTeams(List<Student> students) {
+        List<Team> teams = new ArrayList<>();
+        
+        System.out.println("Forming teams for SQL Hackathon with " + students.size() + " students");
+        
+        // Calculate the optimal number of teams based on team size (aiming for 5 students per team)
+        int totalStudents = students.size();
+        int optimalTeamCount = Math.max(1, (totalStudents + HACKATHON_TEAM_SIZE - 1) / HACKATHON_TEAM_SIZE);
+
+        System.out.println("Creating " + optimalTeamCount + " teams for SQL Hackathon");
+        
+        // Create empty teams
+        for (int i = 0; i < optimalTeamCount; i++) {
+            Team team = Team.builder()
+                    .name("SQL Team " + (i + 1))
+                    .members(new ArrayList<>())
+                    .build();
+            teams.add(team);
+        }
+        
+        // Group students by SQL expertise level
+        Map<String, List<Student>> expertiseGroups = new HashMap<>();
+        expertiseGroups.put("Advanced", new ArrayList<>());
+        expertiseGroups.put("Intermediate", new ArrayList<>());
+        expertiseGroups.put("Beginner", new ArrayList<>());
+        
+        for (Student student : students) {
+            String expertise = student.getSqlExpertiseLevel();
+            if (expertise == null) {
+                expertise = "Beginner"; // Default if not specified
+            }
+            
+            // Add to the appropriate group
+            if (expertise.contains("Advanced")) {
+                expertiseGroups.get("Advanced").add(student);
+            } else if (expertise.contains("Intermediate")) {
+                expertiseGroups.get("Intermediate").add(student);
+            } else {
+                expertiseGroups.get("Beginner").add(student);
+            }
+        }
+        
+        // Group students by track
+        Map<String, List<Student>> trackGroups = new HashMap<>();
+        trackGroups.put("SDET", new ArrayList<>());
+        trackGroups.put("DA", new ArrayList<>());
+        trackGroups.put("DVLPR", new ArrayList<>());
+        trackGroups.put("SMPO", new ArrayList<>());
+        
+        for (Student student : students) {
+            String track = student.getTrack();
+            if (track == null || track.isEmpty()) {
+                track = "Unknown";
+            }
+            
+            // Ensure we have a list for this track
+            if (!trackGroups.containsKey(track)) {
+                trackGroups.put(track, new ArrayList<>());
+            }
+            
+            trackGroups.get(track).add(student);
+        }
+        
+        System.out.println("Expertise distribution: " +
+                "Advanced: " + expertiseGroups.get("Advanced").size() + ", " +
+                "Intermediate: " + expertiseGroups.get("Intermediate").size() + ", " +
+                "Beginner: " + expertiseGroups.get("Beginner").size());
+        
+        System.out.println("Track distribution: " +
+                "SDET: " + trackGroups.getOrDefault("SDET", Collections.emptyList()).size() + ", " +
+                "DA: " + trackGroups.getOrDefault("DA", Collections.emptyList()).size() + ", " +
+                "DVLPR: " + trackGroups.getOrDefault("DVLPR", Collections.emptyList()).size() + ", " +
+                "SMPO: " + trackGroups.getOrDefault("SMPO", Collections.emptyList()).size());
+        
+        // Distribute expertise levels across teams
+        distributeStudents(teams, expertiseGroups.get("Advanced"), "Advanced");
+        distributeStudents(teams, expertiseGroups.get("Intermediate"), "Intermediate");
+        distributeStudents(teams, expertiseGroups.get("Beginner"), "Beginner");
+        
+        // Check if we still have space in teams
+        boolean teamsHaveSpace = teams.stream().anyMatch(team -> team.getSize() < HACKATHON_TEAM_SIZE);
+        
+        // If we still have space, distribute by tracks to ensure track diversity
+        if (teamsHaveSpace) {
+            // Get students not yet assigned
+            Set<String> assignedStudentEmails = new HashSet<>();
+            for (Team team : teams) {
+                for (Student student : team.getMembers()) {
+                    assignedStudentEmails.add(student.getEmail().toLowerCase());
+                }
+            }
+            
+            // Prepare lists of unassigned students by track
+            for (String track : trackGroups.keySet()) {
+                List<Student> trackStudents = trackGroups.get(track);
+                List<Student> unassignedTrackStudents = trackStudents.stream()
+                        .filter(student -> !assignedStudentEmails.contains(student.getEmail().toLowerCase()))
+                        .collect(Collectors.toList());
+                
+                // Distribute these students
+                if (!unassignedTrackStudents.isEmpty()) {
+                    distributeStudents(teams, unassignedTrackStudents, track);
+                }
+            }
+        }
+        
+        // Set statistics for each team
+        for (Team team : teams) {
+            Map<String, Integer> expertiseCounts = countAttributeInTeam(team, "sqlExpertiseLevel");
+            Map<String, Integer> trackCounts = countAttributeInTeam(team, "track");
+            
+            StringBuilder stats = new StringBuilder();
+            
+            // Expertise stats
+            stats.append("Expertise: ");
+            stats.append("Advanced: ").append(expertiseCounts.getOrDefault("Advanced", 0)).append(", ");
+            stats.append("Intermediate: ").append(expertiseCounts.getOrDefault("Intermediate", 0)).append(", ");
+            stats.append("Beginner: ").append(expertiseCounts.getOrDefault("Beginner", 0)).append(" | ");
+            
+            // Track stats
+            stats.append("Tracks: ");
+            stats.append("SDET: ").append(trackCounts.getOrDefault("SDET", 0)).append(", ");
+            stats.append("DA: ").append(trackCounts.getOrDefault("DA", 0)).append(", ");
+            stats.append("DVLPR: ").append(trackCounts.getOrDefault("DVLPR", 0)).append(", ");
+            stats.append("SMPO: ").append(trackCounts.getOrDefault("SMPO", 0));
+            
+            team.setStatistics(stats.toString());
+        }
+        
+        // Remove any empty teams
+        teams.removeIf(team -> team.getMembers().isEmpty());
+        
+        return teams;
+    }
+    
+    /**
+     * Helper method to count occurrences of various attribute values in a team
+     */
+    private Map<String, Integer> countAttributeInTeam(Team team, String attributeName) {
+        Map<String, Integer> counts = new HashMap<>();
+        
+        for (Student student : team.getMembers()) {
+            String value = "";
+            
+            // Get the appropriate field value based on attributeName
+            if ("sqlExpertiseLevel".equals(attributeName)) {
+                value = student.getSqlExpertiseLevel();
+                if (value == null) {
+                    value = "Beginner"; // Default value
+                }
+            } else if ("track".equals(attributeName)) {
+                value = student.getTrack();
+                if (value == null) {
+                    value = "Unknown";
+                }
+            }
+            
+            // Update counts
+            counts.put(value, counts.getOrDefault(value, 0) + 1);
+        }
+        
+        return counts;
+    }
+    
+    /**
+     * Helper method to distribute students across teams
+     */
+    private void distributeStudents(List<Team> teams, List<Student> students, String category) {
+        if (students.isEmpty() || teams.isEmpty()) {
+            return;
+        }
+        
+        System.out.println("Distributing " + students.size() + " " + category + " students across " + teams.size() + " teams");
+        
+        // Randomize students to avoid patterns
+        Collections.shuffle(students);
+        
+        // Track assigned students to avoid duplicates
+        Set<String> assignedEmails = new HashSet<>();
+        for (Team team : teams) {
+            for (Student member : team.getMembers()) {
+                assignedEmails.add(member.getEmail().toLowerCase());
+            }
+        }
+        
+        // Remove already assigned students
+        List<Student> unassignedStudents = students.stream()
+                .filter(student -> !assignedEmails.contains(student.getEmail().toLowerCase()))
+                .collect(Collectors.toList());
+        
+        if (unassignedStudents.isEmpty()) {
+            return;
+        }
+        
+        System.out.println(unassignedStudents.size() + " unassigned " + category + " students to distribute");
+        
+        // First distribute students among teams that have space
+        for (Student student : unassignedStudents) {
+            // Find the team with the lowest number of students in this category
+            // that hasn't reached the maximum team size
+            Team targetTeam = null;
+            int minStudentsOfCategory = Integer.MAX_VALUE;
+            
+            for (Team team : teams) {
+                if (team.getSize() >= HACKATHON_TEAM_SIZE) {
+                    continue; // Skip teams at capacity
+                }
+                
+                int studentsOfCategory;
+                if ("Advanced".equals(category) || "Intermediate".equals(category) || "Beginner".equals(category)) {
+                    studentsOfCategory = (int) team.getMembers().stream()
+                            .filter(s -> {
+                                String expertise = s.getSqlExpertiseLevel();
+                                return expertise != null && expertise.contains(category);
+                            })
+                            .count();
+                } else {
+                    // It's a track category
+                    studentsOfCategory = (int) team.getMembers().stream()
+                            .filter(s -> {
+                                String track = s.getTrack();
+                                return track != null && track.equals(category);
+                            })
+                            .count();
+                }
+                
+                if (studentsOfCategory < minStudentsOfCategory) {
+                    minStudentsOfCategory = studentsOfCategory;
+                    targetTeam = team;
+                }
+            }
+            
+            // If we found a team with space, add the student to it
+            if (targetTeam != null) {
+                targetTeam.addMember(student);
+                assignedEmails.add(student.getEmail().toLowerCase());
+            }
+        }
+    }
+    
+    private String generateSqlHackathonSummary(List<Team> teams, List<Student> unassignedStudents) {
+        StringBuilder summary = new StringBuilder();
+        summary.append("SQL Hackathon Team Formation Results:\n");
+        summary.append("Total teams: ").append(teams.size()).append("\n");
+        summary.append("Total assigned students: ").append(teams.stream().mapToInt(Team::getSize).sum()).append("\n");
+        
+        if (!unassignedStudents.isEmpty()) {
+            summary.append("Unassigned students: ").append(unassignedStudents.size()).append("\n");
+        }
+        
+        // Expertise level distribution
+        Map<String, Integer> expertiseCounts = new HashMap<>();
+        for (Team team : teams) {
+            for (Student student : team.getMembers()) {
+                String expertise = student.getSqlExpertiseLevel();
+                if (expertise == null) {
+                    expertise = "Beginner";
+                }
+                expertiseCounts.put(expertise, expertiseCounts.getOrDefault(expertise, 0) + 1);
+            }
+        }
+        
+        summary.append("\nExpertise Distribution:\n");
+        summary.append("Advanced: ").append(expertiseCounts.getOrDefault("Advanced", 0)).append("\n");
+        summary.append("Intermediate: ").append(expertiseCounts.getOrDefault("Intermediate", 0)).append("\n");
+        summary.append("Beginner: ").append(expertiseCounts.getOrDefault("Beginner", 0)).append("\n");
+        
+        return summary.toString();
+    }
+    
     private String generateGenericSummary(List<Team> teams, List<Student> unassignedStudents) {
         StringBuilder summary = new StringBuilder();
         summary.append(String.format("Created %d teams\n", teams.size()));
