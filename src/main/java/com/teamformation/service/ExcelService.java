@@ -88,7 +88,7 @@ public class ExcelService {
                         courseTypeIdx = i;
                     } else if (header.contains("working")) {
                         workingStatusIdx = i;
-                    } else if (header.contains("time zone")) {
+                    } else if (header.contains("time zone") || header.equals("timezone") || header.contains("which time zone")) {
                         timeZoneIdx = i;
                     } else if (header.contains("dsalgo") || header.contains("ds algo")) {
                         dsAlgoCompletionIdx = i;
