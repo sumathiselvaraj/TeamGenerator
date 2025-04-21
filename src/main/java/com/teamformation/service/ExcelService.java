@@ -113,6 +113,10 @@ public class ExcelService {
                 if (trackIdx == -1 || timeZoneIdx == -1 || sqlExpertiseIdx == -1 || previousHackathonIdx == -1) {
                     throw new Exception("Required columns (Track, Time Zone, SQL Expertise, Previous Hackathon) missing for SQL Hackathon");
                 }
+            } else if (eventType == EventType.PYTHON_HACKATHON) {
+                if (trackIdx == -1 || timeZoneIdx == -1 || sqlExpertiseIdx == -1 || previousHackathonIdx == -1) {
+                    throw new Exception("Required columns (Track, Time Zone, SQL Expertise Level, Previous Hackathon) missing for Python Hackathon");
+                }
             } else if (eventType == EventType.SELENIUM_HACKATHON) {
                 if (trackIdx == -1 || workingStatusIdx == -1 || timeZoneIdx == -1) {
                     throw new Exception("Required columns (Track with Batch No, Working Status, Time Zone) missing for Selenium Hackathon");
@@ -217,7 +221,7 @@ public class ExcelService {
                             continue; // Skip rows without course type
                         }
                     }
-                    else if (eventType == EventType.SQL_HACKATHON) {
+                    else if (eventType == EventType.PYTHON_HACKATHON || eventType == EventType.SQL_HACKATHON) {
                         // Parse track with batch number for SQL Hackathon
                         if (trackIdx >= 0) {
                             Cell trackWithBatchCell = row.getCell(trackIdx);

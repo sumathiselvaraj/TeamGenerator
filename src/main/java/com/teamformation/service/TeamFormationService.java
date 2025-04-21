@@ -57,7 +57,7 @@ public class TeamFormationService {
             teams = formApiHackathonTeams(students, eventType, false); // Phase 2 only needs DVLPR distribution
             unassignedStudents = findUnassignedStudents(students, teams);
             summary = generateApiHackathonSummary(teams, unassignedStudents, eventType);
-        } else if (eventType == EventType.SQL_HACKATHON) {
+        } else if (eventType == EventType.SQL_HACKATHON || eventType == EventType.PYTHON_HACKATHON) {
             teams = formSqlHackathonTeams(students);
             unassignedStudents = findUnassignedStudents(students, teams);
             summary = generateSqlHackathonSummary(teams, unassignedStudents);
@@ -923,7 +923,7 @@ public class TeamFormationService {
     private List<Team> formSqlHackathonTeams(List<Student> students) {
         List<Team> teams = new ArrayList<>();
         
-        System.out.println("Forming teams for SQL Hackathon with " + students.size() + " students");
+        System.out.println("Forming teams for Hackathon with " + students.size() + " students");
         
         // Calculate the optimal number of teams based on team size (aiming for 5 students per team)
         int totalStudents = students.size();
@@ -1186,6 +1186,54 @@ public class TeamFormationService {
         summary.append("Advanced: ").append(expertiseCounts.getOrDefault("Advanced", 0)).append("\n");
         summary.append("Intermediate: ").append(expertiseCounts.getOrDefault("Intermediate", 0)).append("\n");
         summary.append("Beginner: ").append(expertiseCounts.getOrDefault("Beginner", 0)).append("\n");
+        
+        return summary.toString();
+    }
+    
+    private String generatePythonHackathonSummary(List<Team> teams, List<Student> unassignedStudents) {
+        StringBuilder summary = new StringBuilder();
+        summary.append("Python Hackathon Team Formation Results:\n");
+        summary.append("Total teams: ").append(teams.size()).append("\n");
+        summary.append("Total assigned students: ").append(teams.stream().mapToInt(Team::getSize).sum()).append("\n");
+        
+        if (!unassignedStudents.isEmpty()) {
+            summary.append("Unassigned students: ").append(unassignedStudents.size()).append("\n");
+        }
+        
+        // Expertise level distribution
+        Map<String, Integer> expertiseCounts = new HashMap<>();
+        for (Team team : teams) {
+            for (Student student : team.getMembers()) {
+                String expertise = student.getSqlExpertiseLevel();
+                if (expertise == null) {
+                    expertise = "Beginner";
+                }
+                expertiseCounts.put(expertise, expertiseCounts.getOrDefault(expertise, 0) + 1);
+            }
+        }
+        
+        summary.append("\nExpertise Distribution:\n");
+        summary.append("Advanced: ").append(expertiseCounts.getOrDefault("Advanced", 0)).append("\n");
+        summary.append("Intermediate: ").append(expertiseCounts.getOrDefault("Intermediate", 0)).append("\n");
+        summary.append("Beginner: ").append(expertiseCounts.getOrDefault("Beginner", 0)).append("\n");
+        
+        // Track distribution
+        Map<String, Integer> trackCounts = new HashMap<>();
+        for (Team team : teams) {
+            for (Student student : team.getMembers()) {
+                String track = student.getTrack();
+                if (track == null || track.isEmpty()) {
+                    track = "Unknown";
+                }
+                trackCounts.put(track, trackCounts.getOrDefault(track, 0) + 1);
+            }
+        }
+        
+        summary.append("\nTrack Distribution:\n");
+        summary.append("SDET: ").append(trackCounts.getOrDefault("SDET", 0)).append("\n");
+        summary.append("DA: ").append(trackCounts.getOrDefault("DA", 0)).append("\n");
+        summary.append("DVLPR: ").append(trackCounts.getOrDefault("DVLPR", 0)).append("\n");
+        summary.append("SMPO: ").append(trackCounts.getOrDefault("SMPO", 0)).append("\n");
         
         return summary.toString();
     }

@@ -3,6 +3,7 @@ package com.teamformation.model;
 public enum EventType {
     SQL_BOOTCAMP("SQL Bootcamp"),
     SQL_HACKATHON("SQL Hackathon"),
+    PYTHON_HACKATHON("Python Hackathon"),
     SELENIUM_HACKATHON("Selenium Hackathon"),
     PHASE1_API_HACKATHON("Phase 1 API Hackathon"),
     PHASE2_API_HACKATHON("Phase 2 API Hackathon"),
