@@ -94,7 +94,8 @@ public class ExcelService {
                         dsAlgoCompletionIdx = i;
                     } else if (header.contains("previous") && header.contains("hackathon")) {
                         previousHackathonIdx = i;
-                    } else if (header.contains("expertise") && header.contains("sql")) {
+                    } else if ((header.contains("expertise") && header.contains("sql")) || 
+                             (header.contains("expertise") && header.contains("python"))) {
                         sqlExpertiseIdx = i;
                     }
                 }
