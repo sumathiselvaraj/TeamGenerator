@@ -175,19 +175,31 @@ public class TeamFormationService {
                            dvlprStudents.size() + " DVLPR students, " +
                            smpoStudents.size() + " SMPO students");
 
-        // Try to distribute SDET, DA and DVLPR students to balance each team's ratio
+        // Try to distribute SDET, DA, DVLPR and SMPO students to balance each team's ratio
         Collections.shuffle(sdetStudents);
         Collections.shuffle(daStudents);
         Collections.shuffle(dvlprStudents);
+        Collections.shuffle(smpoStudents);
 
         // Try to ensure one DVLPR per team first
         int dvlprPerTeam = Math.min(1, dvlprStudents.size() / fullTeamCount);
+        
+        // Try to ensure one SMPO per team if available
+        int smpoPerTeam = Math.min(1, smpoStudents.size() / fullTeamCount);
 
         // First, distribute one DVLPR to each team (if available)
         for (int i = 0; i < fullTeamCount && !dvlprStudents.isEmpty(); i++) {
             Team team = fullTeams.get(i);
             if (dvlprPerTeam > 0) {
                 team.addMember(dvlprStudents.remove(0));
+            }
+        }
+        
+        // Then, distribute one SMPO to each team (if available)
+        for (int i = 0; i < fullTeamCount && !smpoStudents.isEmpty(); i++) {
+            Team team = fullTeams.get(i);
+            if (smpoPerTeam > 0) {
+                team.addMember(smpoStudents.remove(0));
             }
         }
 
