@@ -26,4 +26,7 @@ public class Student {
     
     // Additional fields for API hackathon events
     private String apiBootcampCompletion;
+    
+    // Additional fields for SQL hackathon
+    private String sqlExpertiseLevel;
 }

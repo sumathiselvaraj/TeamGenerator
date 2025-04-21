@@ -34,6 +34,7 @@ public class ExcelService {
             int timeZoneIdx = -1;
             int dsAlgoCompletionIdx = -1;
             int previousHackathonIdx = -1;
+            int sqlExpertiseIdx = -1;
             
             Row headerRow = sheet.getRow(0);
             if (headerRow == null) {
@@ -93,6 +94,8 @@ public class ExcelService {
                         dsAlgoCompletionIdx = i;
                     } else if (header.contains("previous") && header.contains("hackathon")) {
                         previousHackathonIdx = i;
+                    } else if (header.contains("expertise") && header.contains("sql")) {
+                        sqlExpertiseIdx = i;
                     }
                 }
             }
@@ -105,6 +108,10 @@ public class ExcelService {
             if (eventType == EventType.SQL_BOOTCAMP) {
                 if (trackIdx == -1 || courseTypeIdx == -1) {
                     throw new Exception("Required columns (Track, Course Type) missing for SQL Bootcamp");
+                }
+            } else if (eventType == EventType.SQL_HACKATHON) {
+                if (trackIdx == -1 || timeZoneIdx == -1 || sqlExpertiseIdx == -1 || previousHackathonIdx == -1) {
+                    throw new Exception("Required columns (Track, Time Zone, SQL Expertise, Previous Hackathon) missing for SQL Hackathon");
                 }
             } else if (eventType == EventType.SELENIUM_HACKATHON) {
                 if (trackIdx == -1 || workingStatusIdx == -1 || timeZoneIdx == -1) {
@@ -209,7 +216,83 @@ public class ExcelService {
                         } else {
                             continue; // Skip rows without course type
                         }
-                    } 
+                    }
+                    else if (eventType == EventType.SQL_HACKATHON) {
+                        // Parse track with batch number for SQL Hackathon
+                        if (trackIdx >= 0) {
+                            Cell trackWithBatchCell = row.getCell(trackIdx);
+                            if (trackWithBatchCell != null) {
+                                String trackWithBatch = getCellValueAsString(trackWithBatchCell).trim();
+                                
+                                // Extract track and batch from combined field
+                                if (trackWithBatch.toUpperCase().contains("SDET")) {
+                                    student.setTrack("SDET");
+                                    // Try to extract batch number
+                                    String batchStr = trackWithBatch.replaceAll("(?i).*?SDET\\s*", "").trim();
+                                    student.setBatch(batchStr);
+                                } else if (trackWithBatch.toUpperCase().contains("DA")) {
+                                    student.setTrack("DA");
+                                    // Try to extract batch number
+                                    String batchStr = trackWithBatch.replaceAll("(?i).*?DA\\s*", "").trim();
+                                    student.setBatch(batchStr);
+                                } else if (trackWithBatch.toUpperCase().contains("DVLPR")) {
+                                    student.setTrack("DVLPR");
+                                    // Try to extract batch number
+                                    String batchStr = trackWithBatch.replaceAll("(?i).*?DVLPR\\s*", "").trim();
+                                    student.setBatch(batchStr);
+                                } else if (trackWithBatch.toUpperCase().contains("SMPO")) {
+                                    student.setTrack("SMPO");
+                                    // Try to extract batch number
+                                    String batchStr = trackWithBatch.replaceAll("(?i).*?SMPO\\s*", "").trim();
+                                    student.setBatch(batchStr);
+                                } else {
+                                    student.setTrack(trackWithBatch);
+                                }
+                            } else {
+                                student.setTrack("Unknown");
+                            }
+                        }
+                        
+                        // Parse time zone
+                        if (timeZoneIdx >= 0) {
+                            Cell timeZoneCell = row.getCell(timeZoneIdx);
+                            if (timeZoneCell != null) {
+                                student.setTimeZone(getCellValueAsString(timeZoneCell));
+                            }
+                        }
+                        
+                        // Parse previous hackathon participation
+                        if (previousHackathonIdx >= 0) {
+                            Cell previousHackathonCell = row.getCell(previousHackathonIdx);
+                            if (previousHackathonCell != null) {
+                                String value = getCellValueAsString(previousHackathonCell);
+                                student.setPreviousHackathon(value);
+                                student.setPreviousHackathonParticipation(value);
+                            }
+                        }
+                        
+                        // Parse SQL expertise level
+                        if (sqlExpertiseIdx >= 0) {
+                            Cell sqlExpertiseCell = row.getCell(sqlExpertiseIdx);
+                            if (sqlExpertiseCell != null) {
+                                String expertise = getCellValueAsString(sqlExpertiseCell).trim();
+                                // Standardize expertise values
+                                if (expertise.toLowerCase().contains("beginner")) {
+                                    student.setSqlExpertiseLevel("Beginner");
+                                } else if (expertise.toLowerCase().contains("intermediate")) {
+                                    student.setSqlExpertiseLevel("Intermediate");
+                                } else if (expertise.toLowerCase().contains("advanced")) {
+                                    student.setSqlExpertiseLevel("Advanced");
+                                } else {
+                                    student.setSqlExpertiseLevel(expertise);
+                                }
+                                System.out.println("SQL Expertise for " + student.getName() + ": " + student.getSqlExpertiseLevel());
+                            }
+                        }
+                        
+                        // For hackathons, use event type as course type to maintain compatibility
+                        student.setCourseType(eventType.getDisplayName());
+                    }
                     else if (eventType == EventType.SELENIUM_HACKATHON) {
                         // Parse track with batch for Selenium Hackathons
                         if (trackIdx >= 0) {
