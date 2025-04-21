@@ -115,7 +115,39 @@ public class ExcelService {
                 }
             } else if (eventType == EventType.PYTHON_HACKATHON) {
                 if (trackIdx == -1 || timeZoneIdx == -1 || sqlExpertiseIdx == -1 || previousHackathonIdx == -1) {
-                    throw new Exception("Required columns (Track, Time Zone, SQL Expertise Level, Previous Hackathon) missing for Python Hackathon");
+                    throw new Exception("Required columns (Track, Time Zone, Python Expertise Level, Previous Hackathon) missing for Python Hackathon");
+                }
+                
+                // For Python Hackathon, verify that we have Python-specific column headers
+                boolean hasPythonExpertise = false;
+                boolean hasPythonPreviousParticipation = false;
+                
+                for (int i = 0; i < headerRow.getLastCellNum(); i++) {
+                    Cell cell = headerRow.getCell(i);
+                    if (cell != null) {
+                        String header = cell.getStringCellValue().trim().toLowerCase();
+                        
+                        // Check for Python-specific expertise column
+                        if (header.contains("expertise") && header.contains("python")) {
+                            hasPythonExpertise = true;
+                            sqlExpertiseIdx = i; // Reuse the same index
+                        }
+                        
+                        // Check for Python-specific previous participation
+                        if (header.contains("previous") && header.contains("python") && header.contains("hackathon")) {
+                            hasPythonPreviousParticipation = true;
+                            previousHackathonIdx = i; // Reuse the same index
+                        }
+                    }
+                }
+                
+                // Log a warning if Python-specific columns weren't found
+                if (!hasPythonExpertise) {
+                    System.out.println("Warning: Python expertise column not found, using SQL expertise column");
+                }
+                
+                if (!hasPythonPreviousParticipation) {
+                    System.out.println("Warning: Python previous hackathon column not found, using generic previous hackathon column");
                 }
             } else if (eventType == EventType.SELENIUM_HACKATHON) {
                 if (trackIdx == -1 || workingStatusIdx == -1 || timeZoneIdx == -1) {
