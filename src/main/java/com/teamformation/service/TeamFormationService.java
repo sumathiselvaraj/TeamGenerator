@@ -60,7 +60,12 @@ public class TeamFormationService {
         } else if (eventType == EventType.SQL_HACKATHON || eventType == EventType.PYTHON_HACKATHON) {
             teams = formSqlHackathonTeams(students);
             unassignedStudents = findUnassignedStudents(students, teams);
-            summary = generateSqlHackathonSummary(teams, unassignedStudents);
+            
+            if (eventType == EventType.SQL_HACKATHON) {
+                summary = generateSqlHackathonSummary(teams, unassignedStudents);
+            } else { // Python Hackathon
+                summary = generatePythonHackathonSummary(teams, unassignedStudents);
+            }
         } else {
             // Default handling for other event types
             teams = formGenericTeams(students);
@@ -929,12 +934,23 @@ public class TeamFormationService {
         int totalStudents = students.size();
         int optimalTeamCount = Math.max(1, (totalStudents + HACKATHON_TEAM_SIZE - 1) / HACKATHON_TEAM_SIZE);
 
-        System.out.println("Creating " + optimalTeamCount + " teams for SQL Hackathon");
+        System.out.println("Creating " + optimalTeamCount + " teams for Hackathon");
         
-        // Create empty teams
+        // Create empty teams with the correct event type name
         for (int i = 0; i < optimalTeamCount; i++) {
+            String eventName = "Hackathon";
+            
+            // Get the event type from the first student's course type
+            if (!students.isEmpty() && students.get(0).getCourseType() != null) {
+                if (students.get(0).getCourseType().contains("Python")) {
+                    eventName = "Python";
+                } else if (students.get(0).getCourseType().contains("SQL")) {
+                    eventName = "SQL";
+                }
+            }
+            
             Team team = Team.builder()
-                    .name("SQL Team " + (i + 1))
+                    .name(eventName + " Team " + (i + 1))
                     .members(new ArrayList<>())
                     .build();
             teams.add(team);
