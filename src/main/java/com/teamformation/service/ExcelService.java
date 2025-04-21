@@ -218,6 +218,10 @@ public class ExcelService {
                                     student.setTrack("SDET");
                                 } else if (track.toUpperCase().contains("DA")) {
                                     student.setTrack("DA");
+                                } else if (track.toUpperCase().contains("SMPO")) {
+                                    student.setTrack("SMPO");
+                                } else if (track.toUpperCase().contains("DVLPR")) {
+                                    student.setTrack("DVLPR");
                                 } else {
                                     student.setTrack(track);
                                 }

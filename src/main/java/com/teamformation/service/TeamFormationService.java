@@ -165,10 +165,15 @@ public class TeamFormationService {
         List<Student> dvlprStudents = fullStudents.stream()
                 .filter(s -> "DVLPR".equalsIgnoreCase(s.getTrack()))
                 .collect(Collectors.toList());
+                
+        List<Student> smpoStudents = fullStudents.stream()
+                .filter(s -> "SMPO".equalsIgnoreCase(s.getTrack()))
+                .collect(Collectors.toList());
 
         System.out.println("Full course: " + sdetStudents.size() + " SDET students, " + 
                            daStudents.size() + " DA students, " + 
-                           dvlprStudents.size() + " DVLPR students");
+                           dvlprStudents.size() + " DVLPR students, " +
+                           smpoStudents.size() + " SMPO students");
 
         // Try to distribute SDET, DA and DVLPR students to balance each team's ratio
         Collections.shuffle(sdetStudents);
@@ -256,6 +261,7 @@ public class TeamFormationService {
         remainingStudents.addAll(sdetStudents);
         remainingStudents.addAll(daStudents);
         remainingStudents.addAll(dvlprStudents);
+        remainingStudents.addAll(smpoStudents);
 
         for (Student student : remainingStudents) {
             // Find team with fewest members that hasn't reached max size
@@ -282,11 +288,16 @@ public class TeamFormationService {
                 int dvlprCount = (int) team.getMembers().stream()
                         .filter(s -> "DVLPR".equalsIgnoreCase(s.getTrack()))
                         .count();
+                        
+                int smpoCount = (int) team.getMembers().stream()
+                        .filter(s -> "SMPO".equalsIgnoreCase(s.getTrack()))
+                        .count();
 
-                team.setStatistics(String.format("SDET: %d, DA: %d, DVLPR: %d, Total: %d", 
+                team.setStatistics(String.format("SDET: %d, DA: %d, DVLPR: %d, SMPO: %d, Total: %d", 
                     team.getSdetCount(), 
                     team.getDaCount(),
                     dvlprCount,
+                    smpoCount,
                     team.getSize()));
             }
         }
@@ -296,11 +307,16 @@ public class TeamFormationService {
                 int dvlprCount = (int) team.getMembers().stream()
                         .filter(s -> "DVLPR".equalsIgnoreCase(s.getTrack()))
                         .count();
+                        
+                int smpoCount = (int) team.getMembers().stream()
+                        .filter(s -> "SMPO".equalsIgnoreCase(s.getTrack()))
+                        .count();
 
-                team.setStatistics(String.format("SDET: %d, DA: %d, DVLPR: %d, Total: %d", 
+                team.setStatistics(String.format("SDET: %d, DA: %d, DVLPR: %d, SMPO: %d, Total: %d", 
                     team.getSdetCount(), 
                     team.getDaCount(),
                     dvlprCount,
+                    smpoCount,
                     team.getSize()));
             }
         }
